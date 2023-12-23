@@ -1,0 +1,10 @@
+apiVersion: 1
+
+datasources:
+  - name: 'rabbitmq'
+    type: 'maor2475-rabbitmq-datasource'
+    access: proxy
+    isDefault: false
+    orgId: 1
+    version: 1
+    editable: true
