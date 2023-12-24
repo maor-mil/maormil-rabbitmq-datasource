@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 )
 
 func TestQueryData(t *testing.T) {
-	ds := Datasource{}
+	log.DefaultLogger.Info("TestQueryData Function was activated!")
+	ds := RabbitMQDatasource{}
 
 	resp, err := ds.QueryData(
 		context.Background(),
