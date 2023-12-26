@@ -19,6 +19,7 @@ export interface StreamOptions {
   maxAge: number;
   maxSegmentSizeBytes: number;
   consumerName: string;
+  
   crc: boolean;
 }
 
@@ -33,8 +34,6 @@ export interface RabbitMQDataSourceOptions extends DataSourceJsonData {
 
   streamOptions: StreamOptions;
 
-  maxProducersPerClient: number;
-  maxConsumersPerClient: number;
   requestedHeartbeat: number;
   requestedMaxFrameSize: number;
   writeBuffer: number;

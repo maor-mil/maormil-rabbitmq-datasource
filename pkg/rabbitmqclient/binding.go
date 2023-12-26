@@ -17,10 +17,6 @@ type BindingOptions struct {
 	NoWait       bool   `json:"noWait"`
 }
 
-func NewBindingOptions() *BindingOptions {
-	return &BindingOptions{}
-}
-
 func (bindingOptions *BindingOptions) CreateBinding(options *RabbitMQStreamOptions) error {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
 	if err != nil {

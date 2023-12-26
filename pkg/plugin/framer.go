@@ -1,20 +1,14 @@
-package rabbitmqclient
+package plugin
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	jsoniter "github.com/json-iterator/go"
 )
-
-type Message struct {
-	Timestamp time.Time
-	Value     []byte
-}
 
 type Framer struct {
 	Path     []string
@@ -102,7 +96,7 @@ func (df *Framer) AddValue(fieldType data.FieldType, v interface{}) {
 	df.FieldMap[df.Key()] = len(df.Fields) - 1
 }
 
-func (df *Framer) ToFrame(messages []Message) (*data.Frame, error) {
+func (df *Framer) ToFrame(message TimestampedMessage) (*data.Frame, error) {
 	// clear the data in the fields
 	for _, field := range df.Fields {
 		for i := 0; i < field.Len(); i++ {
@@ -110,16 +104,13 @@ func (df *Framer) ToFrame(messages []Message) (*data.Frame, error) {
 		}
 	}
 
-	for _, message := range messages {
-		df.Iterator = jsoniter.ParseBytes(jsoniter.ConfigDefault, message.Value)
-		err := df.Next()
-		if err != nil {
-			log.DefaultLogger.Error("error parsing message", "error", err)
-			continue
-		}
-		df.Fields[0].Append(message.Timestamp)
-		df.ExtendFields(df.Fields[0].Len() - 1)
+	df.Iterator = jsoniter.ParseBytes(jsoniter.ConfigDefault, message.Value)
+	err := df.Next()
+	if err != nil {
+		log.DefaultLogger.Error("error parsing message", "error", err)
 	}
+	df.Fields[0].Append(message.Timestamp)
+	df.ExtendFields(df.Fields[0].Len() - 1)
 
 	return data.NewFrame("rabbitmq", df.Fields...), nil
 }

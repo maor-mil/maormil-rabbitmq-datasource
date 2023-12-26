@@ -13,9 +13,8 @@ type Client interface {
 	Connect() (Client, error)
 	Reconnect() Client
 	Consume(stream.MessagesHandler) (interface{}, error)
-	CloseConsumers() error
-	Dispose() error
-	GetUniqueClientId() string
+	Dispose()
+	ToString() string
 }
 
 type RabbitMQStreamOptions struct {
@@ -25,8 +24,6 @@ type RabbitMQStreamOptions struct {
 	VHost                 string             `json:"vHost"`
 	User                  string             `json:"username"`
 	Password              string             `json:"password"`
-	MaxProducersPerClient int                `json:"maxProducersPerClient"`
-	MaxConsumersPerClient int                `json:"maxConsumersPerClient"`
 	IsTLS                 bool               `json:"tlsConnection"`
 	TLSConfig             bool               `json:"TLSConfig"`
 	RequestedHeartbeat    time.Duration      `json:"requestedHeartbeat"`
@@ -71,8 +68,6 @@ func (client *RabbitMQStreamClient) SetEnv() (*RabbitMQStreamClient, error) {
 			SetVHost(client.RabbitMQOptions.VHost).
 			SetUser(client.RabbitMQOptions.User).
 			SetPassword(client.RabbitMQOptions.Password).
-			SetMaxProducersPerClient(client.RabbitMQOptions.MaxProducersPerClient).
-			SetMaxConsumersPerClient(client.RabbitMQOptions.MaxConsumersPerClient).
 			IsTLS(client.RabbitMQOptions.IsTLS).
 			//SetTLSConfig(&tls.Config{}).
 			SetRequestedHeartbeat(client.RabbitMQOptions.RequestedHeartbeat * time.Second).
@@ -144,15 +139,15 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment: %s", err)
 		return client, err
 	}
-	log.DefaultLogger.Info("Successfully set the RabbitMQ environment!")
+	log.DefaultLogger.Debug("Successfully set the RabbitMQ environment!")
 
-	log.DefaultLogger.Info("Trying to set the RabbitMQ objects...")
+	log.DefaultLogger.Debug("Trying to set the RabbitMQ objects...")
 	client.SetStream()
 	client.SetExchanges()
 	client.SetBindings()
-	log.DefaultLogger.Info("Successfully set the RabbitMQ objects!")
+	log.DefaultLogger.Debug("Successfully set the RabbitMQ objects!")
 
-	log.DefaultLogger.Info("Trying to create the RabbitMQ objects...")
+	log.DefaultLogger.Debug("Trying to create the RabbitMQ objects...")
 	_, err = client.CreateExchanges()
 	if err != nil {
 		return client, err
@@ -165,39 +160,32 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 	if err != nil {
 		return client, err
 	}
-	log.DefaultLogger.Info("Successfully created the RabbitMQ objects!")
+	log.DefaultLogger.Debug("Successfully created the RabbitMQ objects!")
 
 	log.DefaultLogger.Info("Finished creating the RabbitMQ environment that is connected to the Grafana!")
 
 	return client, nil
 }
 
-func (client *RabbitMQStreamClient) CloseConnection() error {
-	if err := client.CloseConsumers(); err != nil {
-		return err
-	}
+func (client *RabbitMQStreamClient) CloseConnection() {
+	client.Stream.CloseConsumer()
 	if err := client.Env.DeleteStream(client.RabbitMQOptions.StreamOptions.StreamName); err != nil {
-		return err
+		log.DefaultLogger.Info(fmt.Sprintf("DeleteStream error: %s", err))
 	}
 	if err := client.Env.Close(); err != nil {
-		return err
+		log.DefaultLogger.Info(fmt.Sprintf("Env.Close(): %s", err))
 	}
-	return nil
 }
 
 func (client *RabbitMQStreamClient) Reconnect() Client {
 	for {
 		time.Sleep(timeToReconnect)
 		log.DefaultLogger.Info(
-			"Trying to reconnect to RabbitMQ Stream: {RabbitMQ Host: %v ; Stream Name: %v}",
-			client.RabbitMQOptions.Host,
-			client.RabbitMQOptions.StreamOptions.StreamName,
+			"Trying to reconnect to RabbitMQ %v",
+			client.ToString(),
 		)
-		err := client.CloseConnection()
-		if err != nil {
-			continue
-		}
-		_, err = client.Connect()
+		client.CloseConnection()
+		_, err := client.Connect()
 		if err != nil {
 			continue
 		}
@@ -210,22 +198,19 @@ func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandle
 	return client.Stream.Consume(client.Env, messageHandler)
 }
 
-func (client *RabbitMQStreamClient) CloseConsumers() error {
-	return client.Stream.CloseConsumers()
-}
-
-func (client *RabbitMQStreamClient) Dispose() error {
+func (client *RabbitMQStreamClient) Dispose() {
 	log.DefaultLogger.Info(
-		"Disposing RabbitMQ Stream: {RabbitMQ Host: %v ; Stream Name: %v}",
-		client.RabbitMQOptions.Host,
-		client.RabbitMQOptions.StreamOptions.StreamName,
+		fmt.Sprintf("Disposing RabbitMQ Stream: {RabbitMQ Host: %v ; Stream Name: %v}",
+			client.RabbitMQOptions.Host,
+			client.RabbitMQOptions.StreamOptions.StreamName,
+		),
 	)
-	return client.CloseConnection()
+	client.CloseConnection()
 }
 
-func (client *RabbitMQStreamClient) GetUniqueClientId() string {
+func (client *RabbitMQStreamClient) ToString() string {
 	return fmt.Sprintf(
-		"%v_%v_%v",
+		"{ Host: %s, VHost: %s, StreamName: %v }",
 		client.RabbitMQOptions.Host,
 		client.RabbitMQOptions.VHost,
 		client.RabbitMQOptions.StreamOptions.StreamName,
