@@ -1,17 +1,7 @@
 import { DataSourceJsonData } from '@grafana/data';
 import { DataQuery } from '@grafana/schema';
 
-export interface JsonQueryModel {
-  jsonKeyPath: string;
-  regexValue: string;
-}
-
-export interface JsonQueryModels extends Array<JsonQueryModel> {}
-
-export interface RabbitMQQuery extends DataQuery {
-  areMessagesBase64Encrypted: boolean;
-  jsonQueryModels: JsonQueryModels;
-}
+export interface RabbitMQQuery extends DataQuery { }
 
 export interface StreamOptions {
   streamName: string;
@@ -67,8 +57,3 @@ export interface Bindings extends Array<BindingOptions> {}
 export interface RabbitMQSecureJsonData {
   password?: string;
 }
-
-export const DEFAULT_QUERY: Partial<RabbitMQQuery> = {
-  areMessagesBase64Encrypted: false,
-  jsonQueryModels: []
-};

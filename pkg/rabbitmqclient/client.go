@@ -171,9 +171,22 @@ func (client *RabbitMQStreamClient) CloseConnection() {
 	client.Stream.CloseConsumer()
 	if err := client.Env.DeleteStream(client.RabbitMQOptions.StreamOptions.StreamName); err != nil {
 		log.DefaultLogger.Info(fmt.Sprintf("DeleteStream error: %s", err))
+	} else {
+		log.DefaultLogger.Info(
+			fmt.Sprintf("Removed stream: %s from RabbitMQ: %s",
+				client.RabbitMQOptions.StreamOptions.StreamName,
+				client.ToString(),
+			),
+		)
 	}
 	if err := client.Env.Close(); err != nil {
 		log.DefaultLogger.Info(fmt.Sprintf("Env.Close(): %s", err))
+	} else {
+		log.DefaultLogger.Info(
+			fmt.Sprintf("Closed environment of RabbitMQ: %s",
+				client.ToString(),
+			),
+		)
 	}
 }
 
@@ -181,8 +194,9 @@ func (client *RabbitMQStreamClient) Reconnect() Client {
 	for {
 		time.Sleep(timeToReconnect)
 		log.DefaultLogger.Info(
-			"Trying to reconnect to RabbitMQ %v",
-			client.ToString(),
+			fmt.Sprintf("Trying to reconnect to RabbitMQ %v",
+				client.ToString(),
+			),
 		)
 		client.CloseConnection()
 		_, err := client.Connect()
@@ -200,9 +214,8 @@ func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandle
 
 func (client *RabbitMQStreamClient) Dispose() {
 	log.DefaultLogger.Info(
-		fmt.Sprintf("Disposing RabbitMQ Stream: {RabbitMQ Host: %v ; Stream Name: %v}",
-			client.RabbitMQOptions.Host,
-			client.RabbitMQOptions.StreamOptions.StreamName,
+		fmt.Sprintf("Disposing RabbitMQ Stream: %s",
+			client.ToString(),
 		),
 	)
 	client.CloseConnection()

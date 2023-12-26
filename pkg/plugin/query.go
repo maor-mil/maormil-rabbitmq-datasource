@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -28,12 +27,6 @@ func (ds *RabbitMQDatasource) QueryData(_ context.Context, req *backend.QueryDat
 func (ds *RabbitMQDatasource) query(pCtx backend.PluginContext, query backend.DataQuery) backend.DataResponse {
 	log.DefaultLogger.Info("Started query method!")
 	response := backend.DataResponse{}
-	var qm QueryModel
-	response.Error = json.Unmarshal(query.JSON, &qm)
-
-	if response.Error != nil {
-		return response
-	}
 
 	frame := data.NewFrame(FRAME_NAME)
 

@@ -37,6 +37,7 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 }
 
 func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) (*stream.Consumer, error) {
+	log.DefaultLogger.Info(fmt.Sprintf("Activated Consume method on %s", streamOptions.StreamName))
 	consumer, err := env.NewConsumer(
 		streamOptions.StreamName,
 		messagesHandler,

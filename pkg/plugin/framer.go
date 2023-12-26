@@ -22,9 +22,9 @@ func NewFramer() *Framer {
 		FieldMap: make(map[string]int),
 	}
 	timeField := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
-	timeField.Name = "Time"
+	timeField.Name = TIMESTAMP_NAME
 	df.Fields = append(df.Fields, timeField)
-	df.FieldMap["Time"] = 0
+	df.FieldMap[TIMESTAMP_NAME] = 0
 	return df
 }
 
@@ -96,7 +96,7 @@ func (df *Framer) AddValue(fieldType data.FieldType, v interface{}) {
 	df.FieldMap[df.Key()] = len(df.Fields) - 1
 }
 
-func (df *Framer) ToFrame(message TimestampedMessage) (*data.Frame, error) {
+func (df *Framer) ToFrame(message *TimestampedMessage) (*data.Frame, error) {
 	// clear the data in the fields
 	for _, field := range df.Fields {
 		for i := 0; i < field.Len(); i++ {
