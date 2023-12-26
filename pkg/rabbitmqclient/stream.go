@@ -1,6 +1,7 @@
 package rabbitmqclient
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,9 +10,11 @@ import (
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
+var ErrConsumerWasAlreadyCreated = errors.New("Consumer was already created")
+
 type Stream interface {
 	CreateStream(env *stream.Environment) error
-	Consume(*stream.Environment, stream.MessagesHandler) (*stream.Consumer, error)
+	Consume(*stream.Environment, stream.MessagesHandler) error
 	CloseConsumer() error
 }
 
@@ -36,8 +39,16 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 	return err
 }
 
-func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) (*stream.Consumer, error) {
-	log.DefaultLogger.Info(fmt.Sprintf("Activated Consume method on %s", streamOptions.StreamName))
+func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) error {
+	log.DefaultLogger.Info(fmt.Sprintf("Activated Consume method on the stream %s", streamOptions.StreamName))
+	if streamOptions.Consumer != nil {
+		return failOnError(ErrConsumerWasAlreadyCreated,
+			fmt.Sprintf("StreamName: %s; ConsumerName:%s",
+				streamOptions.ConsumerName,
+				streamOptions.setConsumerName(),
+			),
+		)
+	}
 	consumer, err := env.NewConsumer(
 		streamOptions.StreamName,
 		messagesHandler,
@@ -47,11 +58,11 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 			SetCRCCheck(streamOptions.Crc),                   // Disabled CRC control increase the performances
 	)
 	if err != nil {
-		return nil, failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
+		return failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
 	}
 	streamOptions.Consumer = consumer
 	defer consumerClose(consumer.NotifyClose())
-	return consumer, nil
+	return nil
 }
 
 func (streamOptions *StreamOptions) getOffsetSettings() stream.OffsetSpecification {
@@ -80,5 +91,6 @@ func (streamOptions *StreamOptions) CloseConsumer() error {
 	if err := streamOptions.Consumer.Close(); err != nil {
 		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
 	}
+	streamOptions.Consumer = nil
 	return nil
 }

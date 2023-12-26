@@ -33,7 +33,7 @@ func (ds *RabbitMQDatasource) query(pCtx backend.PluginContext, query backend.Da
 	channel := live.Channel{
 		Scope:     live.ScopeDatasource,
 		Namespace: pCtx.DataSourceInstanceSettings.UID,
-		Path:      STREAM_PATH,
+		Path:      STREAM_CHANNEL_PATH,
 	}
 	frame.SetMeta(&data.FrameMeta{Channel: channel.String()})
 

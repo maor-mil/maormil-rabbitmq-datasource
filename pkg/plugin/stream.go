@@ -2,11 +2,13 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/maor2475/rabbitmq-datasource/pkg/rabbitmqclient"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
@@ -44,7 +46,10 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 				ds.Client.ToString(),
 			),
 		)
-		ds.Client.Consume(handleMessages)
+		err := ds.Client.Consume(handleMessages)
+		if errors.Is(err, rabbitmqclient.ErrConsumerWasAlreadyCreated) {
+			return nil
+		}
 
 		select {
 		case <-ctx.Done():

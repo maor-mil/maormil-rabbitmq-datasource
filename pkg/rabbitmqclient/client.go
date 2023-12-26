@@ -12,7 +12,7 @@ type Client interface {
 	IsConnected() bool
 	Connect() (Client, error)
 	Reconnect() Client
-	Consume(stream.MessagesHandler) (interface{}, error)
+	Consume(stream.MessagesHandler) error
 	Dispose()
 	ToString() string
 }
@@ -208,7 +208,7 @@ func (client *RabbitMQStreamClient) Reconnect() Client {
 	return client
 }
 
-func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandler) (interface{}, error) {
+func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandler) error {
 	return client.Stream.Consume(client.Env, messageHandler)
 }
 
