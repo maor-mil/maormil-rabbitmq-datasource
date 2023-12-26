@@ -12,7 +12,7 @@ import (
 type Stream interface {
 	CreateStream(env *stream.Environment) error
 	Consume(*stream.Environment, stream.MessagesHandler) (*stream.Consumer, error)
-	CloseConsumers() error
+	CloseConsumer() error
 }
 
 type StreamOptions struct {
@@ -20,16 +20,13 @@ type StreamOptions struct {
 	MaxAge              time.Duration `json:"maxAge"`
 	MaxLengthBytes      int64         `json:"maxLengthBytes"`
 	MaxSegmentSizeBytes int64         `json:"maxSegmentSizeBytes"`
+	ConsumerName        string        `json:"consumerName"`
+	OffsetFromStart     bool          `json:"offsetFromStart"`
 	Crc                 bool          `json:"crc"`
-	Consumers           []*stream.Consumer
-}
-
-func NewStreamOptions() *StreamOptions {
-	return &StreamOptions{}
+	Consumer            *stream.Consumer
 }
 
 func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error {
-	log.DefaultLogger.Info(fmt.Sprintf("env: %+v: ", env))
 	err := env.DeclareStream(streamOptions.StreamName,
 		stream.NewStreamOptions().
 			SetMaxAge(streamOptions.MaxAge).
@@ -44,16 +41,33 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 		streamOptions.StreamName,
 		messagesHandler,
 		stream.NewConsumerOptions().
-			SetConsumerName("my_consumer").                  // set a consumer name
-			SetOffset(stream.OffsetSpecification{}.First()). // start consuming from the beginning
-			SetCRCCheck(streamOptions.Crc),                  // Disabled CRC control increase the performances
+			SetConsumerName(streamOptions.setConsumerName()). // Set a consumer name
+			SetOffset(streamOptions.getOffsetSettings()).     // Start consuming from the beginning
+			SetCRCCheck(streamOptions.Crc),                   // Disabled CRC control increase the performances
 	)
 	if err != nil {
-		return nil, err
+		return nil, failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
 	}
-	streamOptions.Consumers = append(streamOptions.Consumers, consumer)
+	streamOptions.Consumer = consumer
 	defer consumerClose(consumer.NotifyClose())
 	return consumer, nil
+}
+
+func (streamOptions *StreamOptions) getOffsetSettings() stream.OffsetSpecification {
+	offsetSettings := stream.OffsetSpecification{}
+	if streamOptions.OffsetFromStart {
+		offsetSettings = offsetSettings.First()
+	} else {
+		offsetSettings = offsetSettings.Last()
+	}
+	return offsetSettings
+}
+
+func (streamOptions *StreamOptions) setConsumerName() string {
+	if streamOptions.ConsumerName == "" {
+		streamOptions.ConsumerName = fmt.Sprintf("%s_consumer", streamOptions.StreamName)
+	}
+	return streamOptions.ConsumerName
 }
 
 func consumerClose(channelClose stream.ChannelClose) {
@@ -61,11 +75,9 @@ func consumerClose(channelClose stream.ChannelClose) {
 	log.DefaultLogger.Info(fmt.Sprintf("Consumer: %s closed on the stream: %s, reason: %s \n", event.Name, event.StreamName, event.Reason))
 }
 
-func (streamOptions *StreamOptions) CloseConsumers() error {
-	for consumerIndex := 0; consumerIndex < len(streamOptions.Consumers); consumerIndex += 1 {
-		if err := streamOptions.Consumers[consumerIndex].Close(); err != nil {
-			return err
-		}
+func (streamOptions *StreamOptions) CloseConsumer() error {
+	if err := streamOptions.Consumer.Close(); err != nil {
+		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
 	}
 	return nil
 }

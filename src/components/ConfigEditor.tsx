@@ -22,7 +22,7 @@ export const ConfigEditor = (props: Props) => {
     maxLengthBytes: 2000000000,
     maxAge: 1,
     maxSegmentSizeBytes: 500000000,
-    consumerName: "consumer_name",
+    consumerName: "",
     crc: false
   });
   const [exchanges, setExchanges] = useState<Exchanges>([]);
@@ -73,12 +73,6 @@ export const ConfigEditor = (props: Props) => {
     }
     if (!("streamOptions" in jsonData)) {
       Object.assign(jsonData, {streamOptions: streamOptions});
-    }
-    if (!("maxProducersPerClient" in jsonData)) {
-      Object.assign(jsonData, {maxProducersPerClient: 1});
-    }
-    if (!("maxConsumersPerClient" in jsonData)) {
-      Object.assign(jsonData, {maxConsumersPerClient: 1});
     }
     if (!("requestedHeartbeat" in jsonData)) {
       Object.assign(jsonData, {requestedHeartbeat: 60});
@@ -217,6 +211,18 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
+        <InlineField label="Consumer Name" labelWidth={LABEL_WIDTH} tooltip="The consumer name that will be created">
+          <Input
+            onChange={(event) =>
+              setStreamOptions({
+                ...streamOptions,
+                consumerName: event.currentTarget.value,
+              })
+            }
+            placeholder={streamOptions.consumerName}
+            width={INPUT_WIDTH}
+          />
+        </InlineField>
         <InlineField label="Max Length Bytes" labelWidth={LABEL_WIDTH} tooltip="The max length of messages (in bytes) in the stream">
           <Input
             onChange={(event) =>
@@ -261,30 +267,6 @@ export const ConfigEditor = (props: Props) => {
         <BindingsComponent bindings={bindings} setBindings={setBindings}/>
       </FieldSet>
       <FieldSet label="Advanced RabbitMQ Stream Settings (Change these only if you really know what you are doing)">
-        <InlineField label="Max Producers Per Client" labelWidth={LABEL_WIDTH} tooltip="MaxProducersPerClient must be between 1 and 254">
-          <Input
-            onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, maxProducersPerClient: parseInt(event.currentTarget.value, 10) },
-              })
-            }
-            placeholder={jsonData.maxProducersPerClient.toString()}
-            width={INPUT_WIDTH}
-          />
-        </InlineField>
-        <InlineField label="Max Consumers Per Client" labelWidth={LABEL_WIDTH} tooltip="MaxConsumersPerClient must be between 1 and 254">
-          <Input
-            onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, maxConsumersPerClient: parseInt(event.currentTarget.value, 10) },
-              })
-            }
-            placeholder={jsonData.maxConsumersPerClient.toString()}
-            width={INPUT_WIDTH}
-          />
-        </InlineField>
         <InlineField label="Requested Heartbeat" labelWidth={LABEL_WIDTH}>
           <Input
             onChange={(event) =>

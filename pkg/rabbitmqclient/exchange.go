@@ -19,12 +19,6 @@ type ExchangeOptions struct {
 	NoWait      bool   `json:"noWait"`
 }
 
-func NewExchangeOptions() *ExchangeOptions {
-	return &ExchangeOptions{
-		Durable: true,
-	}
-}
-
 func (exchangeOptions *ExchangeOptions) CreateExchange(options *RabbitMQStreamOptions) error {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
 	if err != nil {
