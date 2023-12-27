@@ -6,6 +6,7 @@
   "metrics": true,
   "backend": true,
   "executable": "gpx_rabbitmq",
+  "alerting": true,
   "info": {
     "description": "Rabbitmq streaming datasource plugin",
     "author": {
