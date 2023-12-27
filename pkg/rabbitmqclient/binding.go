@@ -11,10 +11,11 @@ type Binding interface {
 }
 
 type BindingOptions struct {
-	QueueName    string `json:"queueName"`
-	RoutingKey   string `json:"routingKey"`
-	ExchangeName string `json:"exchangeName"`
-	NoWait       bool   `json:"noWait"`
+	SenderName     string `json:"senderName"`
+	RoutingKey     string `json:"routingKey"`
+	ReceiverName   string `json:"receiverName"`
+	NoWait         bool   `json:"noWait"`
+	IsQueueBinding bool   `json:"isQueueBinding"`
 }
 
 func (bindingOptions *BindingOptions) CreateBinding(options *RabbitMQStreamOptions) error {
@@ -30,18 +31,31 @@ func (bindingOptions *BindingOptions) CreateBinding(options *RabbitMQStreamOptio
 	}
 	defer ch.Close()
 
-	err = ch.QueueBind(
-		bindingOptions.QueueName,
-		bindingOptions.RoutingKey,
-		bindingOptions.ExchangeName,
-		bindingOptions.NoWait,
-		nil, // arguments - not supported at the moment
-	)
+	receiverType := "Queue"
+	if bindingOptions.IsQueueBinding {
+		err = ch.QueueBind(
+			bindingOptions.ReceiverName,
+			bindingOptions.RoutingKey,
+			bindingOptions.SenderName,
+			bindingOptions.NoWait,
+			nil, // arguments - not supported at the moment
+		)
+	} else {
+		err = ch.ExchangeBind(
+			bindingOptions.ReceiverName,
+			bindingOptions.RoutingKey,
+			bindingOptions.SenderName,
+			bindingOptions.NoWait,
+			nil, // arguments - not supported at the moment
+		)
+		receiverType = "Exchange"
+	}
 	return failOnError(
 		err,
-		fmt.Sprintf("Failed to create the binding ((Exchange: %s) -> (Queue: %s) ; (RoutingKey: %s))",
-			bindingOptions.ExchangeName,
-			bindingOptions.QueueName,
+		fmt.Sprintf("Failed to create the binding ((Exchange: %s) -> (%s: %s) ; (RoutingKey: %s))",
+			bindingOptions.SenderName,
+			receiverType,
+			bindingOptions.ReceiverName,
 			bindingOptions.RoutingKey,
 		),
 	)

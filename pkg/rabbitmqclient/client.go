@@ -69,7 +69,7 @@ func (client *RabbitMQStreamClient) SetEnv() (*RabbitMQStreamClient, error) {
 			SetUser(client.RabbitMQOptions.User).
 			SetPassword(client.RabbitMQOptions.Password).
 			IsTLS(client.RabbitMQOptions.IsTLS).
-			//SetTLSConfig(&tls.Config{}).
+			//SetTLSConfig(&tls.Config{}). - TLSConfig is not supported at the moment
 			SetRequestedHeartbeat(client.RabbitMQOptions.RequestedHeartbeat * time.Second).
 			SetRequestedMaxFrameSize(client.RabbitMQOptions.RequestedMaxFrameSize).
 			SetWriteBuffer(client.RabbitMQOptions.WriteBuffer).
@@ -111,7 +111,7 @@ func (client *RabbitMQStreamClient) CreateStream() (*RabbitMQStreamClient, error
 }
 
 func (client *RabbitMQStreamClient) CreateExchanges() (*RabbitMQStreamClient, error) {
-	for exchangeIndex := 0; exchangeIndex < len(client.RabbitMQOptions.ExchangesOptions); exchangeIndex += 1 {
+	for exchangeIndex := 0; exchangeIndex < len(client.Exchanges); exchangeIndex += 1 {
 		if err := client.Exchanges[exchangeIndex].CreateExchange(client.RabbitMQOptions); err != nil {
 			return client, err
 		}
@@ -120,7 +120,7 @@ func (client *RabbitMQStreamClient) CreateExchanges() (*RabbitMQStreamClient, er
 }
 
 func (client *RabbitMQStreamClient) CreateBindings() (*RabbitMQStreamClient, error) {
-	for bindingIndex := 0; bindingIndex < len(client.RabbitMQOptions.BindingsOptions); bindingIndex += 1 {
+	for bindingIndex := 0; bindingIndex < len(client.Bindings); bindingIndex += 1 {
 		if err := client.Bindings[bindingIndex].CreateBinding(client.RabbitMQOptions); err != nil {
 			return client, err
 		}

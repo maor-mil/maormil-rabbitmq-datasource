@@ -46,9 +46,10 @@ export interface ExchangeOptions {
 export interface Exchanges extends Array<ExchangeOptions> {}
 
 export interface BindingOptions {
-  queueName: string;
+  isQueueBinding: boolean;
+  senderName: string;
   routingKey: string;
-  exchangeName: string;
+  receiverName: string;
   noWait: boolean;
 }
 
