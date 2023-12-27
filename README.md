@@ -1,133 +1,186 @@
-# Grafana data source plugin template
+# RabbitMQ Grafana Datasource Plugin
 
-This template is a starting point for building a Data Source Plugin for Grafana.
+The RabbitMQ Streaming Datasource plugin for realtime data updates in [Grafana](https://grafana.com) Dashboards.
 
-## What are Grafana data source plugins?
+## What is RabbitMQ Stream?
+If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resources to read from about it:
+* [RabbitMQ official page about streams](https://www.rabbitmq.com/streams.html)
+* [RabbitMQ Stream Core vs Stream Plugin](https://www.rabbitmq.com/stream-core-plugin-comparison.html)
+* [RabbitMQ Stream Practical Guide Part 1](https://www.cloudamqp.com/blog/rabbitmq-streams-and-replay-features-part-1-when-to-use-rabbitmq-streams.html)
+* [RabbitMQ Stream Practical Guide Part 2](https://www.cloudamqp.com/blog/rabbitmq-streams-and-replay-features-part-2-how-to-work-with-rabbitmq-streams.html)
+* [RabbitMQ Stream Practical Guide Part 3](https://www.cloudamqp.com/blog/rabbitmq-streams-and-replay-features-part-3-limits-and-configurations-for-streams-in-rabbitmq.html)
 
-Grafana supports a wide range of data sources, including Prometheus, MySQL, and even Datadog. There’s a good chance you can already visualize metrics from the systems you have set up. In some cases, though, you already have an in-house metrics solution that you’d like to add to your Grafana dashboards. Grafana Data Source Plugins enables integrating such solutions with Grafana.
+## Getting Started
+### Reqirements
 
-## Getting started
+- RabbitMQ v3.9+ with stream plugin enabled
+- Grafana v8.0+
 
-### Backend
+> Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
-1. Update [Grafana plugin SDK for Go](https://grafana.com/developers/plugin-tools/introduction/grafana-plugin-sdk-for-go) dependency to the latest minor version:
 
-   ```bash
-   go get -u github.com/grafana/grafana-plugin-sdk-go
-   go mod tidy
-   ```
+### Add the RabbitMQ Datasource Plugin to your Grafana
+#### Installation via grafana-cli tool
 
-2. Build backend plugin binaries for Linux, Windows and Darwin:
+Use the grafana-cli tool to install the plugin from the commandline:
 
-   ```bash
-   mage -v
-   ```
+```bash
+grafana-cli plugins install maor2475-rabbitmq-datasource
+```
 
-3. List all available Mage targets for additional commands:
+The plugin will be installed into your grafana plugins directory; the default is `/var/lib/grafana/plugins`. [More information on the cli tool](https://grafana.com/docs/grafana/latest/administration/cli/#plugins-commands).
 
-   ```bash
-   mage -l
-   ```
+#### Installation via zip file
 
-### Frontend
+Alternatively, you can manually download the [latest](https://github.com/maor-mil/maor2475-rabbitmq-datasource/releases/latest) release .zip file and unpack it into your grafana plugins directory; the default is `/var/lib/grafana/plugins`.
 
-1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+### Configure the data source
+![New RabbitMQ Datasource](./screenshots/rabbitmq_datasource.png)
 
-2. Build plugin in development mode and run in watch mode
+[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields:
 
-   ```bash
-   npm run dev
-   ```
 
-3. Build plugin in production mode
+#### Connection
+Basic connection section to connect the RabbitMQ.
 
-   ```bash
-   npm run build
-   ```
+<img src="./screenshots/new_rabbitmq_datasource/connection_section.png"
+ alt="Connection Section" width="400"/>
 
-4. Run the tests (using Jest)
+| Field      	| Type     | Is Required  | Default Value  | Description                            |
+|--------------|----------|--------------|----------------|----------------------------------------|
+| `Host`       | `string` | Yes          | `"localhost"`  | Host (or IP) of the RabbitMQ server    |
+| `AmqpPort`   | `int`    | Yes          | `5672`         | The AMQP port of the RabbitMQ server   |
+| `StreamPort` | `int`    | Yes      	  | `5552`         | The stream port of the RabbitMQ server |
+| `VHost`      | `string` | Yes       	  | `"/"`          | The VHost the RabbitMQ server          |
+---
 
-   ```bash
-   # Runs the tests and watches for changes, requires git init first
-   npm run test
+#### Authentication
+Basic authentication section to connect the RabbitMQ.
 
-   # Exits after running all the tests
-   npm run test:ci
-   ```
+<img src="./screenshots/new_rabbitmq_datasource/authentication_section.png"
+ alt="Authentication Section" width="400"/>
 
-5. Spin up a Grafana instance and run the plugin inside it (using Docker)
+| Field           | Type     | Is Required | Default Value | Description                                      |
+|-----------------|----------|-------------|---------------|--------------------------------------------------|
+| `TlsConnection` | `bool`   | Yes         | `false`       | Should use TLS to connect to the RabbitMQ server |
+| `Username`      | `string` | Yes         | `"guest"`     | Username to connect to the RabbitMQ server       |
+| `Password`      | `string` | Yes         | -----         | Password to connect to the RabbitMQ server       |
+---
+ 
+#### Stream Settings
+Stream decleration settings section, where you define the settings of your wanted
+RabbitMQ stream and the settings of its consumer.
 
-   ```bash
-   npm run server
-   ```
+<img src="./screenshots/new_rabbitmq_datasource/stream_settings_section.png"
+ alt="Stream Settings Section" width="400"/>
 
-6. Run the E2E tests (using Cypress)
+| Field              | Type     | Is Required | Default Value | Description                                              |
+|--------------------|----------|-------------|---------------|----------------------------------------------------------|
+| `Stream Name`      | `string` | Yes         | `""`          | The stream name that will be created                     |
+| `Consumer Name`    | `string` | No          | `""`          | The consumer name that will be created                   |
+| `Max Length Bytes` | `int`    | Yes         | `2000000000`  | The max length of messages (in bytes) in the stream      |
+| `Max Age`          | `int`    | Yes         | `1`           | The max age of messages in the stream                    |
+| `CRC`              | `bool`   | Yes         | `false`       | When crc control is disabed, the perfomance is increased |
+---
 
-   ```bash
-   # Spins up a Grafana instance first that we tests against
-   npm run server
+#### Exchanges
+Optional Section.
+Array section for multiple exchanges that should be created in the RabbitMQ (they will also be recreated in case of connection lost to the RabbitMQ / Stream deletion in the RabbitMQ).
+If the exchange already exists in the RabbitMQ, the plugin will not recreate the exchange but if the same exchange name already exists in the RabbitMQ with different settings that you gave, you might encounter some problems creating the RabbitMQ Datasource connections.
 
-   # Starts the tests
-   npm run e2e
-   ```
+<img src="./screenshots/new_rabbitmq_datasource/exchanges_section.png"
+ alt="Exchanges Section" width="400"/>
 
-7. Run the linter
+| Field              | Type     | Is Required | Default Value              | Description                                              |
+|--------------------|----------|-------------|----------------------------|----------------------------------------------------------|
+| `Exchange Name`    | `string` | Yes         | `"Type the Exchange Name"` | The exchange name that should exist in the RabbitMQ      |
+| `Exchange Type`    | `string` | Yes         | `fanout`                   | The exchange type (should only accept known RabbitMQ exchange types) |
+| `Is Durable`       | `bool`   | Yes         | `true`                     | Should the exchange be durable                           |
+| `Is Auto Deleted`  | `bool`   | Yes         | `false`                    | Should the exchange be auto deleted                      |
+| `Is Internal`      | `bool`   | Yes         | `false`                    | Should the exchange be internal                          |
+| `Is NoWait`        | `bool`   | Yes         | `false`                    | Should the exchange be noWait                            |
+---
 
-   ```bash
-   npm run lint
+#### Bindings
+Optional Section.
+Array section for multiple bindings that should be created in the RabbitMQ (they will also be recreated in case of connection lost to the RabbitMQ / Stream deletion in the RabbitMQ).
+If the binding already exists in the RabbitMQ, the plugin will not recreate the binding.
+There is a support of binding of exchange to queue (or a stream) type of binding AND binding of exchange to exchange.
 
-   # or
+<img src="./screenshots/new_rabbitmq_datasource/bindings_section.png"
+ alt="Bindings Section" width="400"/>
 
-   npm run lint:fix
-   ```
+| Field              | Type     | Is Required | Default Value                                          | Description                                              |
+|--------------------|----------|-------------|--------------------------------------------------------|----------------------------------------------------------|
+| `Is Queue Binding` | `bool`   | Yes         | `true`                                                 | Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange) |
+| `Sender Name`      | `string` | Yes         | `"Some Exchange"`                                      | The exchange to bind from |
+| `Routing Key`      | `string` | Yes         | `"/"`                                                  | The routing key to bind between the sender exchange and the receiver |
+| `Receiver Name`    | `string` | Yes         | `"Probably your stream name or some another exchange"` | The stream/queue/exchange to bind to |
+| `Is No Wait`       | `bool`   | Yes         | `false`                                                | Should binding be noWait |
+---
 
-# Distributing your plugin
+## Query Section
+Please pay attention that there is no real query section in the RabbitMQ plugin.
+Once you set the datasource settings you ready to go.
+You can still change the time range query in the default Grafana query section which will impact what data is being showen and how fast the query interval is.
+This plugin was planned and deisgned to work with the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin.
+Feel free to check this awesome plugin (and if you wish not to use plotly you can still use transformations together with this RabbitMQ plugin).
 
-When distributing a Grafana plugin either within the community or privately the plugin must be signed so the Grafana application can verify its authenticity. This can be done with the `@grafana/sign-plugin` package.
+## Reconnecting to the RabbitMQ
+The plugin handle most chaos scenarios automatically:
+* If the stream is deleted in the RabbitMQ itself - the stream, its consumer, and the pre-configured exchanges and bindings will be recreated.
+* If the Grafana is down once it goes up again, the consumer will be recreated.
+* If the RabbitMQ is down the plugin will try to keep reconnecting to the RabbitMQ (it will only stop if the datasource is deleted by the user).
 
-_Note: It's not necessary to sign a plugin during development. The docker development environment that is scaffolded with `@grafana/create-plugin` caters for running the plugin without a signature._
+### Important Note about the Deletion of RabbitMQ Datasource
+**If the user decides to remove the RabbitMQ Datasource (from the Grafana) - ONLY THE CONSUMER will be removed from the RabbitMQ.** The stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ. So if you wish for them to be deleted, you must do it manually.
 
-## Initial steps
+## Known limitations
+* This plugin does not support advanced TLS Configuration for RabbitMQ connections.
+* This plugin only supports JSON based messages that and throws away any non JSON message. The JSON can contain numbers, strings, booleans, and JSON formatted values. Nested object values can be extracted using the Extract Fields transformation (or being processed by the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin).
+* **This plugin automatically attaches timestamps to the messages** when they are received. Timestamps included in the message body can be parsed using the Convert field type transformation. **The key name of the added timestamp is: `RmqMsgConsumedTimestamp`**
+* As written above - **If the user decides to remove the RabbitMQ Datasource (from the Grafana) - ONLY THE CONSUMER will be removed from the RabbitMQ.** The stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ. So if you wish for them to be deleted, you must do it manually.
 
-Before signing a plugin please read the Grafana [plugin publishing and signing criteria](https://grafana.com/legal/plugins/#plugin-publishing-and-signing-criteria) documentation carefully.
+## Known Errors and Causes When Trying To Connect To RabbitMQ
 
-`@grafana/create-plugin` has added the necessary commands and workflows to make signing and distributing a plugin via the grafana plugins catalog as straightforward as possible.
+* `dial tcp <ip/hostname>:<port>: connect: connection refused`
+   * There is no RabbitMQ up with the given `<ip/hostname>`.
+   * Wrong `Stream Port`.
 
-Before signing a plugin for the first time please consult the Grafana [plugin signature levels](https://grafana.com/legal/plugins/#what-are-the-different-classifications-of-plugins) documentation to understand the differences between the types of signature level.
+<img src="./screenshots/known_errors/connection_refused.png"
+ alt="Exchanges Section" width="400" height="40"/>
 
-1. Create a [Grafana Cloud account](https://grafana.com/signup).
-2. Make sure that the first part of the plugin ID matches the slug of your Grafana Cloud account.
-   - _You can find the plugin ID in the `plugin.json` file inside your plugin directory. For example, if your account slug is `acmecorp`, you need to prefix the plugin ID with `acmecorp-`._
-3. Create a Grafana Cloud API key with the `PluginPublisher` role.
-4. Keep a record of this API key as it will be required for signing a plugin
+* `timeout 10000 ms - waiting Code, operation: commandPeerProperties`
+    * The Stream Plugin is not enabled in the RabbitMQ.
+    * Wrong `AMQP Port`.
+    * Wrong `VHost`.
 
-## Signing a plugin
+<img src="./screenshots/known_errors/timeout_error.png"
+ alt="Exchanges Section" width="400" height="40"/>
 
-### Using Github actions release workflow
+* There could be more errors, but the rest of them are pretty intuitive.
 
-If the plugin is using the github actions supplied with `@grafana/create-plugin` signing a plugin is included out of the box. The [release workflow](./.github/workflows/release.yml) can prepare everything to make submitting your plugin to Grafana as easy as possible. Before being able to sign the plugin however a secret needs adding to the Github repository.
+## Credits
+### Creating the actual Streaming Backend Plugin
+The streaming feature in Grafana is still experimental and the documntation to how to create a streaming backend datasource is lacking.
+There are not a lot of plugins that support this feature yet, so in order to create this RabbitMQ Datasource plugin I read and used some parts from all of the existing Grafana Streaming Datasources:
+* [MQTT Datasource (by GrafanaLabs)](https://github.com/grafana/mqtt-datasource/)
+* [Kafka Datasource (by hamedkarbasi93)](https://github.com/hoptical/grafana-kafka-datasource)
+* [Websocket Backend Datasource Example (by GrafanaLabs)](https://github.com/grafana/grafana-plugin-examples/tree/main/examples/datasource-streaming-backend-websocket)
+* [Websocket Datasource (by Golioth)](https://github.com/golioth/grafana-websocket-plugin)
 
-1. Please navigate to "settings > secrets > actions" within your repo to create secrets.
-2. Click "New repository secret"
-3. Name the secret "GRAFANA_API_KEY"
-4. Paste your Grafana Cloud API key in the Secret field
-5. Click "Add secret"
+Speical credit for the framer.go which was copied from the MQTT Datasource and modified a little bit.
 
-#### Push a version tag
+### Communication with the RabbitMQ
+The plugin is using 2 main core packages to be able to communicate with the RabbitMQ, both by the [RabbitMQ core team](https://github.com/rabbitmq):
+* [amqp091-go](https://github.com/rabbitmq/amqp091-go)
+* [rabbitmq-stream-go-client](https://github.com/rabbitmq/rabbitmq-stream-go-client)
 
-To trigger the workflow we need to push a version tag to github. This can be achieved with the following steps:
+## Contributing
 
-1. Run `npm version <major|minor|patch>`
-2. Run `git push origin main --follow-tags`
+Thank you for considering contributing! If you find an issue or have a better way to do something, feel free to open an issue or a PR.
 
-## Learn more
+## License
 
-Below you can find source code for existing app plugins and other related documentation.
-
-- [Basic data source plugin example](https://github.com/grafana/grafana-plugin-examples/tree/master/examples/datasource-basic#readme)
-- [`plugin.json` documentation](https://grafana.com/developers/plugin-tools/reference-plugin-json)
-- [How to sign a plugin?](https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin)
+This repository is open-sourced software licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).

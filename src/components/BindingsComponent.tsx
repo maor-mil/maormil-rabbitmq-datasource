@@ -10,9 +10,9 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
     const addbinding = () => {
         const newbinding: BindingOptions = {
             isQueueBinding: true,
-            senderName: "Some exchange in your RabbitMQ",
+            senderName: "Some Exchange",
             routingKey: "/",
-            receiverName: "Probably your stream name or some another exchange in your RabbitMQ",
+            receiverName: "Probably your stream name or some another exchange",
             noWait: false
         }
 

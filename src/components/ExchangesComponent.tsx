@@ -35,42 +35,44 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
         {
         exchanges.map((value, index) => (
             <>
-                <InlineField label="Exchange Name" labelWidth={LABEL_WIDTH} tooltip="Exchange that need to be created in the RabbitMQ">
+                <InlineField label="Exchange Name" labelWidth={LABEL_WIDTH} tooltip="The exchange name that should exist in the RabbitMQ">
                     <Input
                         onChange={ event => updateExchangeProperty(index, 'name', event.currentTarget.value)}
                         value={value.name}
                         width={INPUT_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Exchange Type" labelWidth={LABEL_WIDTH} tooltip="Exchange Type (should only accept: fanout | direct | topic | headers | x-consistent-hash)">
+                <InlineField label="Exchange Type" labelWidth={LABEL_WIDTH} tooltip="The exchange Type 
+                (should only accept known RabbitMQ exchange types like: fanout | direct | topic | headers | x-consistent-hash).
+                 This field is free-string for any future new RabbitMQ exchange type that might be added.">
                     <Input
                         onChange={ event => updateExchangeProperty(index, 'type', event.currentTarget.value)}
                         value={value.type}
                         width={INPUT_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Is Durable" labelWidth={LABEL_WIDTH} tooltip="Should exchange be durable">
+                <InlineField label="Is Durable" labelWidth={LABEL_WIDTH} tooltip="Should the exchange be durable">
                     <InlineSwitch
                         onChange={ event => updateExchangeProperty(index, 'durable', event.currentTarget.checked)}
                         value={value.durable}
                         width={SWITCH_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Is Auto Deleted" labelWidth={LABEL_WIDTH} tooltip="Should exchange be auto deleted">
+                <InlineField label="Is Auto Deleted" labelWidth={LABEL_WIDTH} tooltip="Should the exchange be auto deleted">
                     <InlineSwitch
                         onChange={ event => updateExchangeProperty(index, 'autoDeleted', event.currentTarget.checked)}
                         value={value.autoDeleted}
                         width={SWITCH_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Is Internal" labelWidth={LABEL_WIDTH} tooltip="Should exchange be internal">
+                <InlineField label="Is Internal" labelWidth={LABEL_WIDTH} tooltip="Should the exchange be internal">
                     <InlineSwitch
                         onChange={ event => updateExchangeProperty(index, 'internal', event.currentTarget.checked)}
                         value={value.internal}
                         width={SWITCH_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Is No Wait" labelWidth={LABEL_WIDTH} tooltip="Should exchange be noWait">
+                <InlineField label="Is No Wait" labelWidth={LABEL_WIDTH} tooltip="Should the exchange be noWait">
                     <InlineSwitch
                         onChange={ event => updateExchangeProperty(index, 'noWait', event.currentTarget.checked)}
                         value={value.noWait}
