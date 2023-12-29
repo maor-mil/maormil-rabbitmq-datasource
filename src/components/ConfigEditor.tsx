@@ -19,9 +19,9 @@ export const ConfigEditor = (props: Props) => {
 
   const [streamOptions, setStreamOptions] = useState<StreamOptions>({
     streamName: "",
-    maxLengthBytes: 2000000000,
-    maxAge: 1,
-    maxSegmentSizeBytes: 500000000,
+    maxAge: 1_000_000_000 * 60 * 60,
+    maxLengthBytes: 2_000_000_000,
+    maxSegmentSizeBytes: 500_000_000,
     consumerName: "",
     crc: false
   });
@@ -223,7 +223,19 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Length Bytes" labelWidth={LABEL_WIDTH} tooltip="The max length of messages (in bytes) in the stream">
+        <InlineField label="Max Age (in nano-seconds)" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
+          <Input
+            onChange={(event) =>
+              setStreamOptions({
+                ...streamOptions,
+                maxAge: parseInt(event.currentTarget.value, 10),
+              })
+            }
+            placeholder={streamOptions.maxAge.toString()}
+            width={INPUT_WIDTH}
+          />
+        </InlineField>
+        <InlineField label="Max Length Bytes" labelWidth={LABEL_WIDTH} tooltip="The max length of messages in bytes in the stream (set to 0 to disable the max-length-bytes limit)">
           <Input
             onChange={(event) =>
               setStreamOptions({
@@ -235,15 +247,15 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Age" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream">
+        <InlineField label="Max Segment Size Bytes" labelWidth={LABEL_WIDTH} tooltip="The max segment size in bytes in the stream">
           <Input
             onChange={(event) =>
               setStreamOptions({
                 ...streamOptions,
-                maxAge: parseInt(event.currentTarget.value, 10),
+                maxSegmentSizeBytes: parseInt(event.currentTarget.value, 10),
               })
             }
-            placeholder={streamOptions.maxAge.toString()}
+            placeholder={streamOptions.maxSegmentSizeBytes.toString()}
             width={INPUT_WIDTH}
           />
         </InlineField>

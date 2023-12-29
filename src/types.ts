@@ -5,8 +5,8 @@ export interface RabbitMQQuery extends DataQuery { }
 
 export interface StreamOptions {
   streamName: string;
-  maxLengthBytes: number;
   maxAge: number;
+  maxLengthBytes: number;
   maxSegmentSizeBytes: number;
   consumerName: string;
   

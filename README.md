@@ -77,13 +77,14 @@ RabbitMQ stream and the settings of its consumer.
 <img src="./screenshots/new_rabbitmq_datasource/stream_settings_section.png"
  alt="Stream Settings Section" width="400"/>
 
-| Field              | Type     | Is Required | Default Value | Description                                              |
-|--------------------|----------|-------------|---------------|----------------------------------------------------------|
-| `Stream Name`      | `string` | Yes         | `""`          | The stream name that will be created                     |
-| `Consumer Name`    | `string` | No          | `""`          | The consumer name that will be created                   |
-| `Max Length Bytes` | `int`    | Yes         | `2000000000`  | The max length of messages (in bytes) in the stream      |
-| `Max Age`          | `int`    | Yes         | `1`           | The max age of messages in the stream                    |
-| `CRC`              | `bool`   | Yes         | `false`       | When crc control is disabed, the perfomance is increased |
+| Field                    | Type     | Is Required | Default Value       | Description                                              |
+|--------------------------|----------|-------------|---------------------|----------------------------------------------------------|
+| `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                     |
+| `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                   |
+| `Max Age`                | `int`    | Yes         | `3,600,000,000,000` | The max age of messages in the stream in nano-seconds    |
+| `Max Length Bytes`       | `int`    | Yes         | `2,000,000,000`     | The max length of messages in bytes in the stream        |
+| `Max Segment Size Bytes` | `int`    | Yes         | `500,000,000`       | The max segment size in bytes in the stream              |
+| `CRC`                    | `bool`   | Yes         | `false`             | When crc control is disabed, the perfomance is increased |
 ---
 
 #### Exchanges

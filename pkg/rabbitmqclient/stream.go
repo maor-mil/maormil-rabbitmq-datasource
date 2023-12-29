@@ -19,20 +19,20 @@ type Stream interface {
 }
 
 type StreamOptions struct {
-	StreamName          string        `json:"streamName"`
-	MaxAge              time.Duration `json:"maxAge"`
-	MaxLengthBytes      int64         `json:"maxLengthBytes"`
-	MaxSegmentSizeBytes int64         `json:"maxSegmentSizeBytes"`
-	ConsumerName        string        `json:"consumerName"`
-	OffsetFromStart     bool          `json:"offsetFromStart"`
-	Crc                 bool          `json:"crc"`
+	StreamName          string `json:"streamName"`
+	MaxAge              int64  `json:"maxAge"`
+	MaxLengthBytes      int64  `json:"maxLengthBytes"`
+	MaxSegmentSizeBytes int64  `json:"maxSegmentSizeBytes"`
+	ConsumerName        string `json:"consumerName"`
+	OffsetFromStart     bool   `json:"offsetFromStart"`
+	Crc                 bool   `json:"crc"`
 	Consumer            *stream.Consumer
 }
 
 func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error {
 	err := env.DeclareStream(streamOptions.StreamName,
 		stream.NewStreamOptions().
-			SetMaxAge(streamOptions.MaxAge).
+			SetMaxAge(time.Duration(streamOptions.MaxAge)*time.Nanosecond).
 			SetMaxLengthBytes(stream.ByteCapacity{}.B(streamOptions.MaxLengthBytes)).
 			SetMaxSegmentSizeBytes(stream.ByteCapacity{}.B(streamOptions.MaxSegmentSizeBytes)))
 
