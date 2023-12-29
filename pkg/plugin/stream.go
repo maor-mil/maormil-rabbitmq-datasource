@@ -19,7 +19,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	framer := NewFramer()
 
 	handleMessages := func(consumerContext stream.ConsumerContext, message *amqp.Message) {
-		log.DefaultLogger.Info(fmt.Sprintf("Message as string: %v", string(message.Data[0])))
+		log.DefaultLogger.Debug(fmt.Sprintf("Message as string: %v", string(message.Data[0])))
 
 		timestamped_msg := NewTimestampedMessage(message.Data[0])
 		frame, err := framer.ToFrame(timestamped_msg)
