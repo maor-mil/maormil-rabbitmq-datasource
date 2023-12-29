@@ -15,8 +15,8 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 ## Getting Started
 ### Reqirements
 
-- RabbitMQ v3.9+ with stream plugin enabled
-- Grafana v8.0+
+- RabbitMQ v3.12.10+ with stream plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
+- Grafana v9.4.3+ (should work on Grafana v8.0+ but never was tested)
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
