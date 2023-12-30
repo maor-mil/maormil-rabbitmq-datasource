@@ -19,20 +19,20 @@ type Stream interface {
 }
 
 type StreamOptions struct {
-	StreamName          string `json:"streamName"`
-	MaxAge              int64  `json:"maxAge"`
-	MaxLengthBytes      int64  `json:"maxLengthBytes"`
-	MaxSegmentSizeBytes int64  `json:"maxSegmentSizeBytes"`
-	ConsumerName        string `json:"consumerName"`
-	OffsetFromStart     bool   `json:"offsetFromStart"`
-	Crc                 bool   `json:"crc"`
+	StreamName          string        `json:"streamName"`
+	MaxAge              time.Duration `json:"maxAge"`
+	MaxLengthBytes      int64         `json:"maxLengthBytes"`
+	MaxSegmentSizeBytes int64         `json:"maxSegmentSizeBytes"`
+	ConsumerName        string        `json:"consumerName"`
+	OffsetFromStart     bool          `json:"offsetFromStart"`
+	Crc                 bool          `json:"crc"`
 	Consumer            *stream.Consumer
 }
 
 func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error {
 	err := env.DeclareStream(streamOptions.StreamName,
 		stream.NewStreamOptions().
-			SetMaxAge(time.Duration(streamOptions.MaxAge)*time.Nanosecond).
+			SetMaxAge(streamOptions.MaxAge*time.Nanosecond).
 			SetMaxLengthBytes(stream.ByteCapacity{}.B(streamOptions.MaxLengthBytes)).
 			SetMaxSegmentSizeBytes(stream.ByteCapacity{}.B(streamOptions.MaxSegmentSizeBytes)))
 
@@ -45,7 +45,7 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 		return failOnError(ErrConsumerWasAlreadyCreated,
 			fmt.Sprintf("StreamName: %s; ConsumerName:%s",
 				streamOptions.ConsumerName,
-				streamOptions.setConsumerName(),
+				streamOptions.getConsumerName(),
 			),
 		)
 	}
@@ -53,7 +53,7 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 		streamOptions.StreamName,
 		messagesHandler,
 		stream.NewConsumerOptions().
-			SetConsumerName(streamOptions.setConsumerName()). // Set a consumer name
+			SetConsumerName(streamOptions.getConsumerName()). // Set a consumer name
 			SetOffset(streamOptions.getOffsetSettings()).     // Start consuming from the beginning
 			SetCRCCheck(streamOptions.Crc),                   // Disabled CRC control increase the performances
 	)
@@ -75,9 +75,9 @@ func (streamOptions *StreamOptions) getOffsetSettings() stream.OffsetSpecificati
 	return offsetSettings
 }
 
-func (streamOptions *StreamOptions) setConsumerName() string {
+func (streamOptions *StreamOptions) getConsumerName() string {
 	if streamOptions.ConsumerName == "" {
-		streamOptions.ConsumerName = fmt.Sprintf("%s_consumer", streamOptions.StreamName)
+		return fmt.Sprintf("%s_consumer", streamOptions.StreamName)
 	}
 	return streamOptions.ConsumerName
 }

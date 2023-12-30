@@ -2,11 +2,11 @@ import React from 'react';
 
 import { InlineField, InlineSwitch, Input, Button } from '@grafana/ui';
 
-import { Bindings, BindingOptions } from '../types';
+import { BindingsOptions, BindingOptions } from '../types';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 
 
-export function BindingsComponent({ bindings, setBindings }: { bindings: Bindings, setBindings: React.Dispatch<React.SetStateAction<Bindings>>}) {
+export function BindingsComponent({ bindings, setBindings }: { bindings: BindingsOptions, setBindings: React.Dispatch<React.SetStateAction<BindingsOptions>>}) {
     const addbinding = () => {
         const newbinding: BindingOptions = {
             isQueueBinding: true,

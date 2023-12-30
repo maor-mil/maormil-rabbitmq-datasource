@@ -1,9 +1,9 @@
-import React, { ChangeEvent, useState, useMemo, useEffect } from 'react';
+import React, { ChangeEvent, useState, useEffect } from 'react';
 
 import { FieldSet, InlineField, InlineSwitch, Input, SecretInput } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 
-import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData, Exchanges, Bindings, StreamOptions } from '../types';
+import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData, ExchangesOptions, BindingsOptions, StreamOptions } from '../types';
 import { ExchangesComponent } from './ExchangesComponent';
 import { BindingsComponent } from './BindingsComponent';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
@@ -17,16 +17,57 @@ export const ConfigEditor = (props: Props) => {
     options: { jsonData, secureJsonData, secureJsonFields },
   } = props;
 
+  const DEFAULT_HOST = "localhost";
+  const DEFAULT_AMQP_PORT = 5672;
+  const DEFAULT_STREAM_PORT = 5552;
+  const DEFAULT_VHOST = "/";
+  const DEFAULT_TLS_CONNECTION = false;
+  const DEFAULT_USERNAME = "guest";
+  const DEFAULT_PASSWORD = "guest";
+  const DEFAULT_REQUESTED_HEARTBEAT = 30;
+  const DEFAULT_REQUESTED_MAX_FRAME_SIZE = 1048576;
+  const DEFAULT_WRITE_BUFFER = 8192;
+  const DEFAULT_READ_BUFFER = 65536;
+  const DEFAULT_NO_DELAY = false;
+
+  const DEFAULT_STREAM_NAME = "";
+  const DEFAULT_STREAM_CONSUMER_NAME = "";
+  const DEFAULT_OFFSET_FROM_START = true;
+  const DEFAULT_STREAM_MAX_AGE = 1_000_000_000 * 60 * 60;
+  const DEFAULT_STREAM_MAX_LENGTH_BYTES = 2_000_000_000;
+  const DEFAULT_STREAM_MAX_SEGMENT_SIZE_BYTES = 500_000_000;
+  const DEFAULT_STREAM_CRC = false;
+
+  const getDefaultValues = (streamOptions: StreamOptions, exchanges: ExchangesOptions, bindings: BindingsOptions): RabbitMQDataSourceOptions => {
+    return {
+      host: DEFAULT_HOST,
+      amqpPort: DEFAULT_AMQP_PORT,
+      streamPort: DEFAULT_STREAM_PORT,
+      vHost: DEFAULT_VHOST,
+      tlsConnection: DEFAULT_TLS_CONNECTION,
+      username: DEFAULT_USERNAME,
+      streamOptions: streamOptions,
+      exchangesOptions: exchanges,
+      bindingsOptions: bindings,
+      requestedHeartbeat: DEFAULT_REQUESTED_HEARTBEAT,
+      requestedMaxFrameSize: DEFAULT_REQUESTED_MAX_FRAME_SIZE,
+      writeBuffer: DEFAULT_WRITE_BUFFER,
+      readBuffer: DEFAULT_READ_BUFFER,
+      noDelay: DEFAULT_NO_DELAY,
+    };
+  };
+
   const [streamOptions, setStreamOptions] = useState<StreamOptions>({
-    streamName: "",
-    maxAge: 1_000_000_000 * 60 * 60,
-    maxLengthBytes: 2_000_000_000,
-    maxSegmentSizeBytes: 500_000_000,
-    consumerName: "",
-    crc: false
+    streamName: DEFAULT_STREAM_NAME,
+    consumerName: DEFAULT_STREAM_CONSUMER_NAME,
+    maxAge: DEFAULT_STREAM_MAX_AGE,
+    maxLengthBytes: DEFAULT_STREAM_MAX_LENGTH_BYTES,
+    maxSegmentSizeBytes: DEFAULT_STREAM_MAX_SEGMENT_SIZE_BYTES,
+    offsetFromStart: DEFAULT_OFFSET_FROM_START,
+    crc: DEFAULT_STREAM_CRC
   });
-  const [exchanges, setExchanges] = useState<Exchanges>([]);
-  const [bindings, setBindings] = useState<Bindings>([]);
+  const [exchangesOptions, setExchanges] = useState<ExchangesOptions>([]);
+  const [bindingsOptions, setBindings] = useState<BindingsOptions>([]);
 
   // Secure field (only sent to the backend)
   const onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -52,62 +93,51 @@ export const ConfigEditor = (props: Props) => {
     });
   };
 
-  useMemo(() => {
-    if (!("host" in jsonData)) {
-      Object.assign(jsonData, {host: "localhost"});
-    }
-    if (!("amqpPort" in jsonData)) {
-      Object.assign(jsonData, {amqpPort: 5672});
-    }
-    if (!("streamPort" in jsonData)) {
-      Object.assign(jsonData, {streamPort: 5552});
-    }
-    if (!("vHost" in jsonData)) {
-      Object.assign(jsonData, {vHost: "/"});
-    }
-    if (!("tlsConnection" in jsonData)) {
-      Object.assign(jsonData, {tlsConnection: false});
-    }
-    if (!("username" in jsonData)) {
-      Object.assign(jsonData, {username: "guest"});
-    }
-    if (!("streamOptions" in jsonData)) {
-      Object.assign(jsonData, {streamOptions: streamOptions});
-    }
-    if (!("requestedHeartbeat" in jsonData)) {
-      Object.assign(jsonData, {requestedHeartbeat: 60});
-    }
-    if (!("requestedMaxFrameSize" in jsonData)) {
-      Object.assign(jsonData, {requestedMaxFrameSize: 1048576});
-    }
-    if (!("writeBuffer" in jsonData)) {
-      Object.assign(jsonData, {writeBuffer: 8192});
-    }
-    if (!("readBuffer" in jsonData)) {
-      Object.assign(jsonData, {readBuffer: 65536});
-    }
-    if (!("noDelay" in jsonData)) {
-      Object.assign(jsonData, {noDelay: false});
-    }
-    if (!("exchangesOptions" in jsonData)) {
-      Object.assign(jsonData, {exchangesOptions: exchanges});
-    }
-    if (!("bindingsOptions" in jsonData)) {
-      Object.assign(jsonData, {bindingsOptions: bindings});
-    }
-  }, [jsonData, bindings, exchanges, streamOptions]);
+  useEffect(() => {
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...options.jsonData,
+        streamOptions,
+      },
+    });
+  }, [streamOptions]);
 
   useEffect(() => {
-    Object.assign(jsonData, {exchangesOptions: exchanges});
-  }, [jsonData, exchanges]);
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...options.jsonData,
+        exchangesOptions,
+      },
+    });
+  }, [exchangesOptions]);
+  
   useEffect(() => {
-    Object.assign(jsonData, {bindingsOptions: bindings});
-  }, [jsonData, bindings]);
-  useEffect(() => {
-    Object.assign(jsonData, {streamOptions: streamOptions});
-  }, [jsonData, streamOptions]);
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...options.jsonData,
+        bindingsOptions,
+      },
+    });
+  }, [bindingsOptions]);
 
-  const rabbitmqDefaultPassword = "guest";
+  useEffect(() => {
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...options.jsonData,
+        ...getDefaultValues(streamOptions, exchangesOptions, bindingsOptions),
+      },
+    });
+  }, []);
+
+  const onNumericInputChange = (value: string, defaultValue: number, callback: (val: number) => void) => {
+    const parsedValue = parseInt(value, 10);
+    callback(isNaN(parsedValue) ? defaultValue : parsedValue);
+  };
+
   console.log(jsonData);
 
   return (
@@ -118,34 +148,38 @@ export const ConfigEditor = (props: Props) => {
             onChange={(event) =>
               onOptionsChange({
                 ...options,
-                jsonData: { ...options.jsonData, host: event.currentTarget.value },
+                jsonData: { ...options.jsonData, host: event.currentTarget.value || DEFAULT_HOST },
               })
             }
-            placeholder={jsonData.host}
+            placeholder={jsonData?.host ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="AmqpPort" labelWidth={LABEL_WIDTH} tooltip="The AMQP port of the RabbitMQ server">
           <Input
             onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, amqpPort: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_AMQP_PORT, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, amqpPort: value},
+                })
+              )
             }
-            placeholder={jsonData.amqpPort.toString()}
+            placeholder={jsonData?.amqpPort?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="StreamPort" labelWidth={LABEL_WIDTH} tooltip="The stream port of the RabbitMQ server">
           <Input
             onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, streamPort: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_PORT, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, streamPort: value},
+                })
+              )
             }
-            placeholder={jsonData.streamPort.toString()}
+            placeholder={jsonData?.streamPort?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -154,10 +188,10 @@ export const ConfigEditor = (props: Props) => {
             onChange={(event) =>
               onOptionsChange({
                 ...options,
-                jsonData: { ...options.jsonData, vHost: event.currentTarget.value },
+                jsonData: { ...options.jsonData, vHost: event.currentTarget.value || DEFAULT_VHOST},
               })
             }
-            placeholder={jsonData.vHost.toString()}
+            placeholder={jsonData?.vHost?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -171,7 +205,7 @@ export const ConfigEditor = (props: Props) => {
                 jsonData: { ...options.jsonData, tlsConnection: event!.currentTarget.checked },
               })
             }
-            value={jsonData.tlsConnection}
+            value={jsonData?.tlsConnection ?? false}
             width={SWITCH_WIDTH}
           />
         </InlineField>
@@ -180,18 +214,18 @@ export const ConfigEditor = (props: Props) => {
             onChange={(event) =>
               onOptionsChange({
                 ...options,
-                jsonData: { ...options.jsonData, username: event.currentTarget.value },
+                jsonData: { ...options.jsonData, username: event.currentTarget.value || DEFAULT_USERNAME},
               })
             }
-            placeholder={jsonData.username}
+            placeholder={jsonData?.username ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="Password" labelWidth={LABEL_WIDTH} tooltip="Password to connect to the RabbitMQ server">
           <SecretInput
             isConfigured={!!secureJsonFields.password}
-            value={secureJsonData?.password ?? rabbitmqDefaultPassword}
-            placeholder={rabbitmqDefaultPassword}
+            value={secureJsonData?.password ?? DEFAULT_PASSWORD}
+            placeholder={DEFAULT_PASSWORD}
             width={INPUT_WIDTH}
             onReset={onResetPassword}
             onChange={onPasswordChange}
@@ -223,13 +257,27 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Age (in nano-seconds)" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
-          <Input
+        <InlineField label="Offset From Start" labelWidth={LABEL_WIDTH} tooltip="Should the consumer consume messages from the start or the end of the stored messages in the stream">
+          <InlineSwitch
             onChange={(event) =>
               setStreamOptions({
                 ...streamOptions,
-                maxAge: parseInt(event.currentTarget.value, 10),
+                offsetFromStart: event!.currentTarget.checked,
               })
+            }
+            value={streamOptions.offsetFromStart}
+            width={SWITCH_WIDTH}
+          />
+        </InlineField>
+        <InlineField label="Max Age (in nano-seconds)" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
+          <Input
+            onChange={(event) =>
+              onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_MAX_AGE, (value) =>
+                setStreamOptions({
+                  ...streamOptions,
+                  maxAge: value,
+                })
+              )
             }
             placeholder={streamOptions.maxAge.toString()}
             width={INPUT_WIDTH}
@@ -238,10 +286,12 @@ export const ConfigEditor = (props: Props) => {
         <InlineField label="Max Length Bytes" labelWidth={LABEL_WIDTH} tooltip="The max length of messages in bytes in the stream (set to 0 to disable the max-length-bytes limit)">
           <Input
             onChange={(event) =>
-              setStreamOptions({
-                ...streamOptions,
-                maxLengthBytes: parseInt(event.currentTarget.value, 10),
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_MAX_LENGTH_BYTES, (value) =>
+                setStreamOptions({
+                  ...streamOptions,
+                  maxLengthBytes: value,
+                })
+              )
             }
             placeholder={streamOptions.maxLengthBytes.toString()}
             width={INPUT_WIDTH}
@@ -250,10 +300,12 @@ export const ConfigEditor = (props: Props) => {
         <InlineField label="Max Segment Size Bytes" labelWidth={LABEL_WIDTH} tooltip="The max segment size in bytes in the stream">
           <Input
             onChange={(event) =>
-              setStreamOptions({
-                ...streamOptions,
-                maxSegmentSizeBytes: parseInt(event.currentTarget.value, 10),
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_MAX_SEGMENT_SIZE_BYTES, (value) =>
+                setStreamOptions({
+                  ...streamOptions,
+                  maxSegmentSizeBytes: value,
+                })
+              )
             }
             placeholder={streamOptions.maxSegmentSizeBytes.toString()}
             width={INPUT_WIDTH}
@@ -273,57 +325,65 @@ export const ConfigEditor = (props: Props) => {
         </InlineField>
       </FieldSet>
       <FieldSet label="Exchanges (Create new exchanges in the RabbitMQ)">
-        <ExchangesComponent exchanges={exchanges} setExchanges={setExchanges}/>
+        <ExchangesComponent exchanges={exchangesOptions} setExchanges={setExchanges}/>
       </FieldSet>
       <FieldSet label="Bindings (Create new bindings in the RabbitMQ)">
-        <BindingsComponent bindings={bindings} setBindings={setBindings}/>
+        <BindingsComponent bindings={bindingsOptions} setBindings={setBindings}/>
       </FieldSet>
       <FieldSet label="Advanced RabbitMQ Stream Settings (Change these only if you really know what you are doing)">
         <InlineField label="Requested Heartbeat" labelWidth={LABEL_WIDTH}>
           <Input
             onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, requestedHeartbeat: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_REQUESTED_HEARTBEAT, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, requestedHeartbeat: value},
+                })
+              )
             }
-            placeholder={jsonData.requestedHeartbeat.toString()}
+            placeholder={jsonData?.requestedHeartbeat?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="Requested Max FrameSize" labelWidth={LABEL_WIDTH}>
           <Input
             onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, requestedMaxFrameSize: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_REQUESTED_MAX_FRAME_SIZE, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, requestedMaxFrameSize: value},
+                })
+              )
             }
-            placeholder={jsonData.requestedMaxFrameSize.toString()}
+            placeholder={jsonData?.requestedMaxFrameSize?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="Write Buffer" labelWidth={LABEL_WIDTH}>
           <Input
             onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, writeBuffer: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_WRITE_BUFFER, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, writeBuffer: value},
+                })
+              )
             }
-            placeholder={jsonData.writeBuffer.toString()}
+            placeholder={jsonData?.writeBuffer?.toString() || ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
         <InlineField label="Read Buffer" labelWidth={LABEL_WIDTH}>
           <Input
              onChange={(event) =>
-              onOptionsChange({
-                ...options,
-                jsonData: { ...options.jsonData, readBuffer: parseInt(event.currentTarget.value, 10) },
-              })
+              onNumericInputChange(event.currentTarget.value, DEFAULT_READ_BUFFER, (value) =>
+                onOptionsChange({
+                  ...options,
+                  jsonData: { ...options.jsonData, readBuffer: value},
+                })
+              )
             }
-            placeholder={jsonData.readBuffer.toString()}
+            placeholder={jsonData?.readBuffer?.toString() || ''}
             width={INPUT_WIDTH}
           />
         </InlineField>

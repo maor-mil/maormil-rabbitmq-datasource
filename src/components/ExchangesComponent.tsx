@@ -2,11 +2,11 @@ import React from 'react';
 
 import { InlineField, InlineSwitch, Input, Button } from '@grafana/ui';
 
-import { Exchanges, ExchangeOptions } from '../types';
+import { ExchangesOptions, ExchangeOptions } from '../types';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 
 
-export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exchanges, setExchanges: React.Dispatch<React.SetStateAction<Exchanges>>}) {
+export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: ExchangesOptions, setExchanges: React.Dispatch<React.SetStateAction<ExchangesOptions>>}) {
     const addExchange = () => {
         const newExchange: ExchangeOptions = {
             name: "Type the Exchange name",

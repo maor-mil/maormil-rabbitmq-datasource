@@ -40,7 +40,7 @@ Alternatively, you can manually download the [latest](https://github.com/maor-mi
 ### Configure the data source
 ![New RabbitMQ Datasource](./screenshots/rabbitmq_datasource.png)
 
-[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields:
+[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (TIP: if you don't know what some field means just leave it with the default value):
 
 
 #### Connection
@@ -49,12 +49,12 @@ Basic connection section to connect the RabbitMQ.
 <img src="./screenshots/new_rabbitmq_datasource/connection_section.png"
  alt="Connection Section" width="400"/>
 
-| Field      	| Type     | Is Required  | Default Value  | Description                            |
+| Field        | Type     | Is Required  | Default Value  | Description                            |
 |--------------|----------|--------------|----------------|----------------------------------------|
 | `Host`       | `string` | Yes          | `"localhost"`  | Host (or IP) of the RabbitMQ server    |
 | `AmqpPort`   | `int`    | Yes          | `5672`         | The AMQP port of the RabbitMQ server   |
-| `StreamPort` | `int`    | Yes      	  | `5552`         | The stream port of the RabbitMQ server |
-| `VHost`      | `string` | Yes       	  | `"/"`          | The VHost the RabbitMQ server          |
+| `StreamPort` | `int`    | Yes      	 | `5552`         | The stream port of the RabbitMQ server |
+| `VHost`      | `string` | Yes       	 | `"/"`          | The VHost the RabbitMQ server          |
 ---
 
 #### Authentication
@@ -81,6 +81,7 @@ RabbitMQ stream and the settings of its consumer.
 |--------------------------|----------|-------------|---------------------|----------------------------------------------------------|
 | `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                     |
 | `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                   |
+| `Offset from Start`      | `bool`   | Yes         | `true`              | Should the consumer consume messages from the start or the end of the stored messages in the stream |
 | `Max Age`                | `int`    | Yes         | `3,600,000,000,000` | The max age of messages in the stream in nano-seconds    |
 | `Max Length Bytes`       | `int`    | Yes         | `2,000,000,000`     | The max length of messages in bytes in the stream        |
 | `Max Segment Size Bytes` | `int`    | Yes         | `500,000,000`       | The max segment size in bytes in the stream              |
@@ -143,6 +144,7 @@ The plugin handle most chaos scenarios automatically:
 * This plugin does not support advanced TLS Configuration for RabbitMQ connections.
 * This plugin only supports JSON based messages that and throws away any non JSON message. The JSON can contain numbers, strings, booleans, and JSON formatted values. Nested object values can be extracted using the Extract Fields transformation (or being processed by the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin).
 * **This plugin automatically attaches timestamps to the messages** when they are received. Timestamps included in the message body can be parsed using the Convert field type transformation. **The key name of the added timestamp is: `RmqMsgConsumedTimestamp`**
+* Currently the only supported offsets are First and Last (no specific offset or timestamp support when consuming messages from the RabbitMQ streams).
 * As written above - **If the user decides to remove the RabbitMQ Datasource (from the Grafana) - ONLY THE CONSUMER will be removed from the RabbitMQ.** The stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ. So if you wish for them to be deleted, you must do it manually.
 
 ## Known Errors and Causes When Trying To Connect To RabbitMQ

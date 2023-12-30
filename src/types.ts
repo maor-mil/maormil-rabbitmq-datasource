@@ -5,11 +5,11 @@ export interface RabbitMQQuery extends DataQuery { }
 
 export interface StreamOptions {
   streamName: string;
+  consumerName: string;
+  offsetFromStart: boolean;
   maxAge: number;
   maxLengthBytes: number;
   maxSegmentSizeBytes: number;
-  consumerName: string;
-  
   crc: boolean;
 }
 
@@ -24,14 +24,14 @@ export interface RabbitMQDataSourceOptions extends DataSourceJsonData {
 
   streamOptions: StreamOptions;
 
+  exchangesOptions: ExchangesOptions;
+  bindingsOptions: BindingsOptions;
+
   requestedHeartbeat: number;
   requestedMaxFrameSize: number;
   writeBuffer: number;
   readBuffer: number;
   noDelay: boolean;
-
-  exchangeOptions: Exchanges;
-  bindingOptions: Bindings;
 }
 
 export interface ExchangeOptions {
@@ -43,7 +43,7 @@ export interface ExchangeOptions {
   noWait: boolean;
 }
 
-export interface Exchanges extends Array<ExchangeOptions> {}
+export interface ExchangesOptions extends Array<ExchangeOptions> {}
 
 export interface BindingOptions {
   isQueueBinding: boolean;
@@ -53,7 +53,7 @@ export interface BindingOptions {
   noWait: boolean;
 }
 
-export interface Bindings extends Array<BindingOptions> {}
+export interface BindingsOptions extends Array<BindingOptions> {}
 
 export interface RabbitMQSecureJsonData {
   password?: string;
