@@ -24,7 +24,7 @@ export const ConfigEditor = (props: Props) => {
   const DEFAULT_TLS_CONNECTION = false;
   const DEFAULT_USERNAME = "guest";
   const DEFAULT_PASSWORD = "guest";
-  const DEFAULT_REQUESTED_HEARTBEAT = 30;
+  const DEFAULT_REQUESTED_HEARTBEAT = 60;
   const DEFAULT_REQUESTED_MAX_FRAME_SIZE = 1048576;
   const DEFAULT_WRITE_BUFFER = 8192;
   const DEFAULT_READ_BUFFER = 65536;
