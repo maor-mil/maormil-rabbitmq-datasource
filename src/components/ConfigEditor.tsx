@@ -93,6 +93,8 @@ export const ConfigEditor = (props: Props) => {
     });
   };
 
+  /* eslint-disable react-hooks/exhaustive-deps */
+
   useEffect(() => {
     onOptionsChange({
       ...options,
@@ -132,6 +134,8 @@ export const ConfigEditor = (props: Props) => {
       },
     });
   }, []);
+
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const onNumericInputChange = (value: string, defaultValue: number, callback: (val: number) => void) => {
     const parsedValue = parseInt(value, 10);
