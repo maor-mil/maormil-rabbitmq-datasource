@@ -40,7 +40,7 @@ Alternatively, you can manually download the [latest](https://github.com/maor-mi
 ### Configure the data source
 ![New RabbitMQ Datasource](./screenshots/rabbitmq_datasource.png)
 
-[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (TIP: if you don't know what some field means just leave it with the default value):
+[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you don't know what some field means just leave it with the default value):
 
 
 #### Connection
