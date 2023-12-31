@@ -142,8 +142,6 @@ export const ConfigEditor = (props: Props) => {
     callback(isNaN(parsedValue) ? defaultValue : parsedValue);
   };
 
-  console.log(jsonData);
-
   return (
     <div className="gf-form-group">
       <FieldSet label="Connection">
