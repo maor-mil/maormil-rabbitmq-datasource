@@ -18,7 +18,40 @@
       "large": "img/rabbitmq-logo.svg"
     },
     "links": [],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Demo Two RabbitMQs",
+        "path": "gifs/demo_two_rabbitmqs.gif"
+      },
+      {
+        "name": "New RabbitMQ Datasource",
+        "path": "screenshots/rabbitmq_datasource.png"
+      },
+      {
+        "name": "Connection Section",
+        "path": "screenshots/new_rabbitmq_datasource/connection_section.png"
+      },
+      {
+        "name": "Authentication Section",
+        "path": "screenshots/new_rabbitmq_datasource/authentication_section.png"
+      },
+      {
+        "name": "Stream Settings Section",
+        "path": "screenshots/new_rabbitmq_datasource/stream_settings_section.png"
+      },
+      {
+        "name": "Exchanges Section",
+        "path": "screenshots/new_rabbitmq_datasource/exchanges_section.png"
+      },
+      {
+        "name": "Bindings Section",
+        "path": "screenshots/new_rabbitmq_datasource/bindings_section.png"
+      },
+      {
+        "name": "RabbitMQ Query Editor",
+        "path": "screenshots/rabbitmq_query_editor.png"
+      }      
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },

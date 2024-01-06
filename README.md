@@ -37,11 +37,10 @@ The plugin will be installed into your grafana plugins directory; the default is
 Alternatively, you can manually download the [latest](https://github.com/maor-mil/maor2475-rabbitmq-datasource/releases/latest) release .zip file and unpack it into your grafana plugins directory; the default is `/var/lib/grafana/plugins`.
 
 
-### Configure the data source
+### Configuration Editor - Configure your RabbitMQ Stream
 ![New RabbitMQ Datasource](src/screenshots/rabbitmq_datasource.png)
 
-[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you don't know what some field means just leave it with the default value):
-
+[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you are not sure some field means just leave it with the default value)
 
 #### Connection
 Basic connection section to connect the RabbitMQ.
@@ -112,7 +111,7 @@ Array section for multiple bindings that should be created in the RabbitMQ (they
 If the binding already exists in the RabbitMQ, the plugin will not recreate the binding.
 There is a support of binding of exchange to queue (or a stream) type of binding AND binding of exchange to exchange.
 
-<img src="src/screenshots/new_rabbitmq_datasource/bindings_section.png"
+<img src=src/screenshots/new_rabbitmq_datasource/bindings_section.png
  alt="Bindings Section" width="400"/>
 
 | Field              | Type     | Is Required | Default Value                                          | Description                                              |
@@ -124,10 +123,13 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 | `Is No Wait`       | `bool`   | Yes         | `false`                                                | Should binding be noWait |
 ---
 
-## Query Section
-Please pay attention that there is no real query section in the RabbitMQ plugin.
+## Query Editor
+<img src=src/screenshots/rabbitmq_query_editor.png
+ alt="Bindings Section" width="300"/>
+
+Please pay attention that there is no real query editor in the RabbitMQ plugin.
 Once you set the datasource settings you ready to go.
-You can still change the time range query in the default Grafana query section which will impact what data is being showen and how fast the query interval is.
+You can still change the time range query in the default Grafana query editor which will impact what data is being showen and how fast the query interval is.
 This plugin was planned and deisgned to work with the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin.
 Feel free to check this awesome plugin (and if you wish not to use plotly you can still use transformations together with this RabbitMQ plugin).
 

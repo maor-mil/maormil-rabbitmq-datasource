@@ -1,5 +1,5 @@
 # Changelog
 
-## 1.0.0 (Unreleased)
+## 1.0.0-unsigned (Unreleased)
 
-Initial release.
+Initial release as unsigned plugin.
