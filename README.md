@@ -15,8 +15,8 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 ## Getting Started
 ### Reqirements
 
-- RabbitMQ v3.12.10+ with stream plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
-- Grafana v9.4.3+ (should work on Grafana v8.0+ but never was tested)
+- RabbitMQ v3.12.10+ with `rabbitmq_stream` plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
+- Grafana v9.4.3+
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
@@ -49,12 +49,12 @@ Basic connection section to connect the RabbitMQ.
 <img src="./screenshots/new_rabbitmq_datasource/connection_section.png"
  alt="Connection Section" width="400"/>
 
-| Field        | Type     | Is Required  | Default Value  | Description                            |
-|--------------|----------|--------------|----------------|----------------------------------------|
-| `Host`       | `string` | Yes          | `"localhost"`  | Host (or IP) of the RabbitMQ server    |
-| `AmqpPort`   | `int`    | Yes          | `5672`         | The AMQP port of the RabbitMQ server   |
-| `StreamPort` | `int`    | Yes      	 | `5552`         | The stream port of the RabbitMQ server |
-| `VHost`      | `string` | Yes       	 | `"/"`          | The VHost the RabbitMQ server          |
+| Field         | Type     | Is Required  | Default Value  | Description                                 |
+|---------------|----------|--------------|----------------|---------------------------------------------|
+| `Host`        | `string` | Yes          | `"localhost"`  | Hostname (or the IP) of the RabbitMQ server |
+| `AMQP Port`   | `int`    | Yes          | `5672`         | The AMQP port of the RabbitMQ server        |
+| `Stream Port` | `int`    | Yes      	  | `5552`         | The stream port of the RabbitMQ server      |
+| `VHost`       | `string` | Yes       	  | `"/"`          | The virtual host the RabbitMQ server        |
 ---
 
 #### Authentication
@@ -63,11 +63,11 @@ Basic authentication section to connect the RabbitMQ.
 <img src="./screenshots/new_rabbitmq_datasource/authentication_section.png"
  alt="Authentication Section" width="400"/>
 
-| Field           | Type     | Is Required | Default Value | Description                                      |
-|-----------------|----------|-------------|---------------|--------------------------------------------------|
-| `TlsConnection` | `bool`   | Yes         | `false`       | Should use TLS to connect to the RabbitMQ server |
-| `Username`      | `string` | Yes         | `"guest"`     | Username to connect to the RabbitMQ server       |
-| `Password`      | `string` | Yes         | -----         | Password to connect to the RabbitMQ server       |
+| Field            | Type     | Is Required | Default Value | Description                                      |
+|------------------|----------|-------------|---------------|--------------------------------------------------|
+| `TLS Connection` | `bool`   | Yes         | `false`       | Should use TLS to connect to the RabbitMQ server |
+| `Username`       | `string` | Yes         | `"guest"`     | Username to connect to the RabbitMQ server       |
+| `Password`       | `string` | Yes         | -----         | Password to connect to the RabbitMQ server       |
 ---
  
 #### Stream Settings
@@ -77,15 +77,15 @@ RabbitMQ stream and the settings of its consumer.
 <img src="./screenshots/new_rabbitmq_datasource/stream_settings_section.png"
  alt="Stream Settings Section" width="400"/>
 
-| Field                    | Type     | Is Required | Default Value       | Description                                              |
-|--------------------------|----------|-------------|---------------------|----------------------------------------------------------|
-| `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                     |
-| `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                   |
+| Field                    | Type     | Is Required | Default Value       | Description                                               |
+|--------------------------|----------|-------------|---------------------|-----------------------------------------------------------|
+| `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                      |
+| `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                    |
 | `Offset from Start`      | `bool`   | Yes         | `true`              | Should the consumer consume messages from the start or the end of the stored messages in the stream |
-| `Max Age`                | `int`    | Yes         | `3,600,000,000,000` | The max age of messages in the stream in nano-seconds    |
-| `Max Length Bytes`       | `int`    | Yes         | `2,000,000,000`     | The max length of messages in bytes in the stream        |
-| `Max Segment Size Bytes` | `int`    | Yes         | `500,000,000`       | The max segment size in bytes in the stream              |
-| `CRC`                    | `bool`   | Yes         | `false`             | When crc control is disabed, the perfomance is increased |
+| `Max Age`                | `int`    | Yes         | `3,600,000,000,000` | The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit) |
+| `Max Length Bytes`       | `int`    | Yes         | `2,000,000,000`     | The max length of messages in bytes in the stream (set to 0 to disable the max-length-bytes limit) |
+| `Max Segment Size Bytes` | `int`    | Yes         | `500,000,000`       | The max segment size in bytes in the stream               |
+| `CRC`                    | `bool`   | Yes         | `false`             | When CRC control is disabled, the perfomance is increased |
 ---
 
 #### Exchanges

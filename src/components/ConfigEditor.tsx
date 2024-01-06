@@ -145,7 +145,7 @@ export const ConfigEditor = (props: Props) => {
   return (
     <div className="gf-form-group">
       <FieldSet label="Connection">
-        <InlineField label="Host" labelWidth={LABEL_WIDTH} tooltip="Host of the RabbitMQ server">
+        <InlineField label="Host" labelWidth={LABEL_WIDTH} tooltip="Hostname (or the IP) of the RabbitMQ server">
           <Input
             onChange={(event) =>
               onOptionsChange({
@@ -157,7 +157,7 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="AmqpPort" labelWidth={LABEL_WIDTH} tooltip="The AMQP port of the RabbitMQ server">
+        <InlineField label="AMQP Port" labelWidth={LABEL_WIDTH} tooltip="The AMQP port of the RabbitMQ server">
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_AMQP_PORT, (value) =>
@@ -171,7 +171,7 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="StreamPort" labelWidth={LABEL_WIDTH} tooltip="The stream port of the RabbitMQ server">
+        <InlineField label="Stream Port" labelWidth={LABEL_WIDTH} tooltip="The stream port of the RabbitMQ server">
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_PORT, (value) =>
@@ -185,7 +185,7 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="VHost" labelWidth={LABEL_WIDTH} tooltip="The VHost the RabbitMQ server">
+        <InlineField label="VHost" labelWidth={LABEL_WIDTH} tooltip="The virtual host the RabbitMQ server">
           <Input
             onChange={(event) =>
               onOptionsChange({
@@ -199,7 +199,7 @@ export const ConfigEditor = (props: Props) => {
         </InlineField>
       </FieldSet>
       <FieldSet label="Authentication">
-        <InlineField label="TlsConnection" labelWidth={LABEL_WIDTH} tooltip="Should use TLS to connect to the RabbitMQ server">
+        <InlineField label="TLS Connection" labelWidth={LABEL_WIDTH} tooltip="Should use TLS to connect to the RabbitMQ server">
           <InlineSwitch
             onChange={(event) =>
               onOptionsChange({
@@ -271,7 +271,7 @@ export const ConfigEditor = (props: Props) => {
             width={SWITCH_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Age (in nano-seconds)" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
+        <InlineField label="Max Age" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_MAX_AGE, (value) =>
@@ -313,7 +313,7 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="CRC" labelWidth={LABEL_WIDTH} tooltip="When crc control is disabed, the perfomance is increased">
+        <InlineField label="CRC" labelWidth={LABEL_WIDTH} tooltip="When CRC control is disabled, the perfomance is increased">
           <InlineSwitch
             onChange={(event) =>
               setStreamOptions({
