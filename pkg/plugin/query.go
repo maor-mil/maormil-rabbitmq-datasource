@@ -10,7 +10,7 @@ import (
 )
 
 func (ds *RabbitMQDatasource) QueryData(_ context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
-	log.DefaultLogger.Info("Started QueryData method!")
+	log.DefaultLogger.Debug("Started QueryData method!")
 	response := backend.NewQueryDataResponse()
 
 	for _, q := range req.Queries {
@@ -19,13 +19,13 @@ func (ds *RabbitMQDatasource) QueryData(_ context.Context, req *backend.QueryDat
 		response.Responses[q.RefID] = res
 	}
 
-	log.DefaultLogger.Info("Finished QueryData method!")
+	log.DefaultLogger.Debug("Finished QueryData method!")
 
 	return response, nil
 }
 
 func (ds *RabbitMQDatasource) query(pCtx backend.PluginContext, query backend.DataQuery) backend.DataResponse {
-	log.DefaultLogger.Info("Started query method!")
+	log.DefaultLogger.Debug("Started query method!")
 	response := backend.DataResponse{}
 
 	frame := data.NewFrame(FRAME_NAME)
@@ -39,7 +39,7 @@ func (ds *RabbitMQDatasource) query(pCtx backend.PluginContext, query backend.Da
 
 	response.Frames = append(response.Frames, frame)
 
-	log.DefaultLogger.Info("Finished query method!")
+	log.DefaultLogger.Debug("Finished query method!")
 
 	return response
 }

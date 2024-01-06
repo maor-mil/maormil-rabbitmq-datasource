@@ -40,7 +40,6 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 }
 
 func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) error {
-	log.DefaultLogger.Info(fmt.Sprintf("Activated Consume method on the stream %s", streamOptions.StreamName))
 	if streamOptions.Consumer != nil {
 		return failOnError(ErrConsumerWasAlreadyCreated,
 			fmt.Sprintf("StreamName: %s; ConsumerName:%s",
@@ -88,9 +87,9 @@ func consumerClose(channelClose stream.ChannelClose) {
 }
 
 func (streamOptions *StreamOptions) CloseConsumer() error {
+	streamOptions.Consumer = nil
 	if err := streamOptions.Consumer.Close(); err != nil {
 		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
 	}
-	streamOptions.Consumer = nil
 	return nil
 }

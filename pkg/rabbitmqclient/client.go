@@ -133,7 +133,7 @@ func (client *RabbitMQStreamClient) IsConnected() bool {
 }
 
 func (client *RabbitMQStreamClient) Connect() (Client, error) {
-	log.DefaultLogger.Info("Trying set the RabbitMQ environment...")
+	log.DefaultLogger.Info("Trying to set the RabbitMQ environment...")
 	_, err := client.SetEnv()
 	if err != nil {
 		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment: %s", err)
@@ -160,9 +160,7 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 	if err != nil {
 		return client, err
 	}
-	log.DefaultLogger.Debug("Successfully created the RabbitMQ objects!")
-
-	log.DefaultLogger.Info("Finished creating the RabbitMQ environment that is connected to the Grafana!")
+	log.DefaultLogger.Info("Successfully created the RabbitMQ objects!")
 
 	return client, nil
 }

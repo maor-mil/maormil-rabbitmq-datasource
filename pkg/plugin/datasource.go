@@ -64,7 +64,7 @@ func getDatasourceSettings(s backend.DataSourceInstanceSettings) (*rabbitmqclien
 	client := rabbitmqclient.NewRabbitMQStreamClient()
 	rabbitmqStreamOptions := rabbitmqclient.NewRabbitMQStreamOptions()
 
-	log.DefaultLogger.Info("Getting Datasource Settings...")
+	log.DefaultLogger.Info("Getting Datasource Settings from Client...")
 
 	if err := json.Unmarshal(s.JSONData, rabbitmqStreamOptions); err != nil {
 		log.DefaultLogger.Error("%s: %s\n", "Failed to Unmarshell due to", err)
