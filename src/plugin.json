@@ -14,14 +14,14 @@
     },
     "keywords": ["datasource"],
     "logos": {
-      "small": "img/rabbitmq-logo.svg",
-      "large": "img/rabbitmq-logo.svg"
+      "small": "img/rabbitmq_logo.svg",
+      "large": "img/rabbitmq_logo.svg"
     },
     "links": [],
     "screenshots": [
       {
         "name": "Demo Two RabbitMQs",
-        "path": "gifs/demo_two_rabbitmqs.gif"
+        "path": "img/demo_with_two_rabbitmqs.gif"
       },
       {
         "name": "New RabbitMQ Datasource",
