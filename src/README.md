@@ -66,7 +66,7 @@ Basic authentication section to connect the RabbitMQ.
 |------------------|----------|-------------|---------------|--------------------------------------------------|
 | `TLS Connection` | `bool`   | Yes         | `false`       | Should use TLS to connect to the RabbitMQ server |
 | `Username`       | `string` | Yes         | `"guest"`     | Username to connect to the RabbitMQ server       |
-| `Password`       | `string` | Yes         | -----         | Password to connect to the RabbitMQ server       |
+| `Password`       | `string` | Yes         | `"guest"`     | Password to connect to the RabbitMQ server       |
 ---
  
 #### Stream Settings
