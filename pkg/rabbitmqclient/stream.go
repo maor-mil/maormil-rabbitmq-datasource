@@ -83,7 +83,7 @@ func (streamOptions *StreamOptions) getConsumerName() string {
 
 func consumerClose(channelClose stream.ChannelClose) {
 	event := <-channelClose
-	log.DefaultLogger.Info(fmt.Sprintf("Consumer: %s closed on the stream: %s, reason: %s \n", event.Name, event.StreamName, event.Reason))
+	log.DefaultLogger.Debug(fmt.Sprintf("Consumer: %s closed on the stream: %s, reason: %s \n", event.Name, event.StreamName, event.Reason))
 }
 
 func (streamOptions *StreamOptions) CloseConsumer() error {

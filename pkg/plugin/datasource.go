@@ -23,21 +23,21 @@ var (
 )
 
 func NewRabbitMQInstance(s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	log.DefaultLogger.Info("Creating new RabbitMQ Instance...")
+	log.DefaultLogger.Debug("Creating new RabbitMQ Instance...")
 
 	client, err := getDatasourceSettings(s)
 	if err != nil {
 		return nil, err
 	}
 
-	log.DefaultLogger.Info("New RabbitMQ Instance Datasource settings were set!")
+	log.DefaultLogger.Debug("New RabbitMQ Instance Datasource settings were set!")
 
 	_, err = client.Connect()
 	if err != nil {
 		return nil, err
 	}
 
-	log.DefaultLogger.Info("Successfully connected to the RabbitMQ!")
+	log.DefaultLogger.Debug("Successfully connected to the RabbitMQ!")
 
 	return NewRabbitMQDatasource(client), nil
 }
@@ -64,24 +64,23 @@ func getDatasourceSettings(s backend.DataSourceInstanceSettings) (*rabbitmqclien
 	client := rabbitmqclient.NewRabbitMQStreamClient()
 	rabbitmqStreamOptions := rabbitmqclient.NewRabbitMQStreamOptions()
 
-	log.DefaultLogger.Info("Getting Datasource Settings from Client...")
+	log.DefaultLogger.Debug("Getting Datasource Settings from Client...")
 
 	if err := json.Unmarshal(s.JSONData, rabbitmqStreamOptions); err != nil {
-		log.DefaultLogger.Error("%s: %s\n", "Failed to Unmarshell due to", err)
 		return nil, err
 	}
 
-	log.DefaultLogger.Info("Successfully unmarshelled the JSONData!")
+	log.DefaultLogger.Debug("Successfully unmarshelled the JSONData!")
 
 	if password, exists := s.DecryptedSecureJSONData["password"]; exists {
 		rabbitmqStreamOptions.Password = password
 	}
 
-	log.DefaultLogger.Info("Successfully decrypted secure JSONData!")
+	log.DefaultLogger.Debug("Successfully decrypted secure JSONData!")
 
 	client.SetRabbitMQOptions(rabbitmqStreamOptions)
 
-	log.DefaultLogger.Info("Successfully set the RabbitMQOptions in the RabbitMQStreamClient!")
+	log.DefaultLogger.Debug("Successfully set the RabbitMQOptions in the RabbitMQStreamClient!")
 
 	return client, nil
 }

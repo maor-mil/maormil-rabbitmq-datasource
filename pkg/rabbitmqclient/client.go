@@ -133,10 +133,10 @@ func (client *RabbitMQStreamClient) IsConnected() bool {
 }
 
 func (client *RabbitMQStreamClient) Connect() (Client, error) {
-	log.DefaultLogger.Info("Trying to set the RabbitMQ environment...")
+	log.DefaultLogger.Debug("Trying to set the RabbitMQ environment...")
 	_, err := client.SetEnv()
 	if err != nil {
-		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment: %s", err)
+		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment", "error", err)
 		return client, err
 	}
 	log.DefaultLogger.Debug("Successfully set the RabbitMQ environment!")
@@ -160,7 +160,7 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 	if err != nil {
 		return client, err
 	}
-	log.DefaultLogger.Info("Successfully created the RabbitMQ objects!")
+	log.DefaultLogger.Debug("Successfully created the RabbitMQ objects!")
 
 	return client, nil
 }
@@ -168,34 +168,21 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 func (client *RabbitMQStreamClient) CloseConnection() {
 	client.Stream.CloseConsumer()
 	if err := client.Env.DeleteStream(client.RabbitMQOptions.StreamOptions.StreamName); err != nil {
-		log.DefaultLogger.Info(fmt.Sprintf("DeleteStream error: %s", err))
+		log.DefaultLogger.Debug("DeleteStream error", "error", err)
 	} else {
-		log.DefaultLogger.Info(
-			fmt.Sprintf("Removed stream: %s from RabbitMQ: %s",
-				client.RabbitMQOptions.StreamOptions.StreamName,
-				client.ToString(),
-			),
-		)
+		log.DefaultLogger.Debug("Removed stream", "RabbitMQ Stream", client.ToString())
 	}
 	if err := client.Env.Close(); err != nil {
-		log.DefaultLogger.Info(fmt.Sprintf("Env.Close(): %s", err))
+		log.DefaultLogger.Debug("Env.Close() failed", "error", err)
 	} else {
-		log.DefaultLogger.Info(
-			fmt.Sprintf("Closed environment of RabbitMQ: %s",
-				client.ToString(),
-			),
-		)
+		log.DefaultLogger.Debug("Closed RabbitMQ environment", "RabbitMQ Stream", client.ToString())
 	}
 }
 
 func (client *RabbitMQStreamClient) Reconnect() Client {
 	for {
 		time.Sleep(timeToReconnect)
-		log.DefaultLogger.Info(
-			fmt.Sprintf("Trying to reconnect to RabbitMQ %v",
-				client.ToString(),
-			),
-		)
+		log.DefaultLogger.Debug("Trying to reconnect to RabbitMQ", "RabbitMQ Stream", client.ToString())
 		client.CloseConnection()
 		_, err := client.Connect()
 		if err != nil {
@@ -211,11 +198,7 @@ func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandle
 }
 
 func (client *RabbitMQStreamClient) Dispose() {
-	log.DefaultLogger.Info(
-		fmt.Sprintf("Disposing RabbitMQ Stream: %s",
-			client.ToString(),
-		),
-	)
+	log.DefaultLogger.Info("Disposing RabbitMQ Stream", "RabbitMQ Stream", client.ToString())
 	client.CloseConnection()
 }
 

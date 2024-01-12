@@ -77,13 +77,13 @@ func (df *Framer) AddNil() {
 		df.Fields[idx].Set(0, nil)
 		return
 	}
-	log.DefaultLogger.Info("nil value for unknown field", "key", df.Key())
+	log.DefaultLogger.Debug("Nil value for unknown field", "key", df.Key())
 }
 
 func (df *Framer) AddValue(fieldType data.FieldType, v interface{}) {
 	if idx, ok := df.FieldMap[df.Key()]; ok {
 		if df.Fields[idx].Type() != fieldType {
-			log.DefaultLogger.Info("field type mismatch", "key", df.Key(), "existing", df.Fields[idx], "new", fieldType)
+			log.DefaultLogger.Debug("Field type mismatch", "key", df.Key(), "existing", df.Fields[idx], "new", fieldType)
 			return
 		}
 		df.Fields[idx].Append(v)
@@ -107,12 +107,12 @@ func (df *Framer) ToFrame(message *TimestampedMessage) (*data.Frame, error) {
 	df.Iterator = jsoniter.ParseBytes(jsoniter.ConfigDefault, message.Value)
 	err := df.Next()
 	if err != nil {
-		log.DefaultLogger.Error("error parsing message", "error", err)
+		log.DefaultLogger.Debug("Error parsing message", "error", err)
 	}
 	df.Fields[0].Append(message.Timestamp)
 	df.ExtendFields(df.Fields[0].Len() - 1)
 
-	return data.NewFrame("rabbitmq", df.Fields...), nil
+	return data.NewFrame(FRAME_NAME, df.Fields...), nil
 }
 
 func (df *Framer) ExtendFields(idx int) {

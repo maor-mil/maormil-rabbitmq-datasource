@@ -153,7 +153,7 @@ export const ConfigEditor = (props: Props) => {
                 jsonData: { ...options.jsonData, host: event.currentTarget.value || DEFAULT_HOST },
               })
             }
-            placeholder={jsonData?.host ?? ''}
+            value={jsonData?.host ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -167,7 +167,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.amqpPort?.toString() ?? ''}
+            value={jsonData?.amqpPort?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -181,7 +181,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.streamPort?.toString() ?? ''}
+            value={jsonData?.streamPort?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -193,7 +193,7 @@ export const ConfigEditor = (props: Props) => {
                 jsonData: { ...options.jsonData, vHost: event.currentTarget.value || DEFAULT_VHOST},
               })
             }
-            placeholder={jsonData?.vHost?.toString() ?? ''}
+            value={jsonData?.vHost?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -219,7 +219,7 @@ export const ConfigEditor = (props: Props) => {
                 jsonData: { ...options.jsonData, username: event.currentTarget.value || DEFAULT_USERNAME},
               })
             }
-            placeholder={jsonData?.username ?? ''}
+            value={jsonData?.username ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -243,7 +243,8 @@ export const ConfigEditor = (props: Props) => {
                 streamName: event.currentTarget.value,
               })
             }
-            placeholder={streamOptions.streamName}
+            value={streamOptions.streamName}
+            placeholder='Stream Name'
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -255,7 +256,8 @@ export const ConfigEditor = (props: Props) => {
                 consumerName: event.currentTarget.value,
               })
             }
-            placeholder={streamOptions.consumerName}
+            value={streamOptions.consumerName}
+            placeholder='Consumer Name (can be empty)'
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -281,7 +283,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={streamOptions.maxAge.toString()}
+            value={streamOptions.maxAge.toString()}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -295,7 +297,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={streamOptions.maxLengthBytes.toString()}
+            value={streamOptions.maxLengthBytes.toString()}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -309,7 +311,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={streamOptions.maxSegmentSizeBytes.toString()}
+            value={streamOptions.maxSegmentSizeBytes.toString()}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -343,7 +345,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.requestedHeartbeat?.toString() ?? ''}
+            value={jsonData?.requestedHeartbeat?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -357,7 +359,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.requestedMaxFrameSize?.toString() ?? ''}
+            value={jsonData?.requestedMaxFrameSize?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -371,7 +373,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.writeBuffer?.toString() || ''}
+            value={jsonData?.writeBuffer?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>
@@ -385,7 +387,7 @@ export const ConfigEditor = (props: Props) => {
                 })
               )
             }
-            placeholder={jsonData?.readBuffer?.toString() || ''}
+            value={jsonData?.readBuffer?.toString() ?? ''}
             width={INPUT_WIDTH}
           />
         </InlineField>

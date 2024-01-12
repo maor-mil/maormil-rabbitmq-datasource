@@ -14,11 +14,7 @@ import (
 )
 
 func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info(
-		fmt.Sprintf("Called RunStream method for RabbitMQ Stream: %s.",
-			ds.Client.ToString(),
-		),
-	)
+	log.DefaultLogger.Info("Called RunStream method", "RabbitMQ Stream", ds.Client.ToString())
 
 	framer := NewFramer()
 	isFirstCtxDoneDispose := true
@@ -38,7 +34,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 			select {
 			case <-ctx.Done():
 				if isFirstCtxDoneDispose {
-					log.DefaultLogger.Info("Stopped streaming - Context Canceled (in RabbitMQ Consumer handleMessages function)")
+					log.DefaultLogger.Debug("Stopped streaming - Context Canceled (in RabbitMQ Consumer handleMessages function)")
 					ds.Client.Dispose()
 					isFirstCtxDoneDispose = false
 				}
@@ -50,11 +46,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	}
 
 	for {
-		log.DefaultLogger.Info(
-			fmt.Sprintf("Creating new consumer for the RabbitMQ Stream: %s",
-				ds.Client.ToString(),
-			),
-		)
+		log.DefaultLogger.Debug("Creating new consumer", "RabbitMQ Stream", ds.Client.ToString())
 		err := ds.Client.Consume(handleMessages)
 		if errors.Is(err, rabbitmqclient.ErrConsumerWasAlreadyCreated) {
 			return nil
@@ -62,14 +54,13 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Info("Stopped streaming - Context Canceled (in RunStream main for loop)")
+			log.DefaultLogger.Debug("Stopped streaming - Context Canceled (in RunStream main for loop)")
 			ds.Client.Dispose()
 			return ctx.Err()
 		default:
-			log.DefaultLogger.Info(
-				fmt.Sprintf("Something went wrong with the RabbitMQ: %s. Trying to reconnect...",
-					ds.Client.ToString(),
-				),
+			log.DefaultLogger.Debug(
+				"Something went wrong with the RabbitMQ. Trying to reconnect...",
+				"RabbitMQ Stream", ds.Client.ToString(),
 			)
 			ds.Client.Reconnect()
 		}
@@ -79,11 +70,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 // SubscribeStream just returns an ok in this case, since we will always allow the user to successfully connect.
 // Permissions verifications could be done here. Check backend.StreamHandler docs for more details.
 func (ds *RabbitMQDatasource) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
-	log.DefaultLogger.Info(
-		fmt.Sprintf("Called SubscribeStream method for RabbitMQ Stream: %s.",
-			ds.Client.ToString(),
-		),
-	)
+	log.DefaultLogger.Info("Called SubscribeStream method", "RabbitMQ Stream", ds.Client.ToString())
 	return &backend.SubscribeStreamResponse{
 		Status: backend.SubscribeStreamStatusOK,
 	}, nil
@@ -92,11 +79,7 @@ func (ds *RabbitMQDatasource) SubscribeStream(_ context.Context, req *backend.Su
 // PublishStream just returns permission denied in this case, since in this example we don't want the user to send stream data.
 // Permissions verifications could be done here. Check backend.StreamHandler docs for more details.
 func (ds *RabbitMQDatasource) PublishStream(_ context.Context, _ *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
-	log.DefaultLogger.Info(
-		fmt.Sprintf("Called PublishStream method for RabbitMQ Stream: %s.",
-			ds.Client.ToString(),
-		),
-	)
+	log.DefaultLogger.Info("Called PublishStream method", "RabbitMQ Stream", ds.Client.ToString())
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
