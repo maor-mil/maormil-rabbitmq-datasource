@@ -58,16 +58,25 @@ export const ConfigEditor = (props: Props) => {
   };
 
   const [streamOptions, setStreamOptions] = useState<StreamOptions>({
-    streamName: DEFAULT_STREAM_NAME,
-    consumerName: DEFAULT_STREAM_CONSUMER_NAME,
-    maxAge: DEFAULT_STREAM_MAX_AGE,
-    maxLengthBytes: DEFAULT_STREAM_MAX_LENGTH_BYTES,
-    maxSegmentSizeBytes: DEFAULT_STREAM_MAX_SEGMENT_SIZE_BYTES,
-    offsetFromStart: DEFAULT_OFFSET_FROM_START,
-    crc: DEFAULT_STREAM_CRC
+    streamName: jsonData?.streamOptions?.streamName ?? DEFAULT_STREAM_NAME,
+    consumerName: jsonData?.streamOptions?.consumerName ?? DEFAULT_STREAM_CONSUMER_NAME,
+    maxAge: jsonData?.streamOptions?.maxAge ?? DEFAULT_STREAM_MAX_AGE,
+    maxLengthBytes: jsonData?.streamOptions?.maxLengthBytes ?? DEFAULT_STREAM_MAX_LENGTH_BYTES,
+    maxSegmentSizeBytes: jsonData?.streamOptions?.maxSegmentSizeBytes ?? DEFAULT_STREAM_MAX_SEGMENT_SIZE_BYTES,
+    offsetFromStart: jsonData?.streamOptions?.offsetFromStart ?? DEFAULT_OFFSET_FROM_START,
+    crc: jsonData?.streamOptions?.crc ?? DEFAULT_STREAM_CRC
   });
-  const [exchangesOptions, setExchanges] = useState<ExchangesOptions>([]);
-  const [bindingsOptions, setBindings] = useState<BindingsOptions>([]);
+  const [exchangesOptions, setExchanges] = useState<ExchangesOptions>(jsonData?.exchangesOptions ?? []);
+  const [bindingsOptions, setBindings] = useState<BindingsOptions>(jsonData?.bindingsOptions ?? []);
+
+  const isEmptyObject = (obj: Record<string, any>) => {
+    return Object.keys(obj).length === 0;
+  };
+
+  const onNumericInputChange = (value: string, defaultValue: number, callback: (val: number) => void) => {
+    const parsedValue = parseInt(value, 10);
+    callback(isNaN(parsedValue) ? defaultValue : parsedValue);
+  };
 
   // Secure field (only sent to the backend)
   const onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -126,21 +135,17 @@ export const ConfigEditor = (props: Props) => {
   }, [bindingsOptions]);
 
   useEffect(() => {
-    onOptionsChange({
-      ...options,
-      jsonData: {
-        ...options.jsonData,
-        ...getDefaultValues(streamOptions, exchangesOptions, bindingsOptions),
-      },
-    });
+    if (isEmptyObject(jsonData)) {
+      onOptionsChange({
+        ...options,
+        jsonData: {
+          ...getDefaultValues(streamOptions, exchangesOptions, bindingsOptions),
+        },
+      });
+    }
   }, []);
 
   /* eslint-enable react-hooks/exhaustive-deps */
-
-  const onNumericInputChange = (value: string, defaultValue: number, callback: (val: number) => void) => {
-    const parsedValue = parseInt(value, 10);
-    callback(isNaN(parsedValue) ? defaultValue : parsedValue);
-  };
 
   return (
     <div className="gf-form-group">
