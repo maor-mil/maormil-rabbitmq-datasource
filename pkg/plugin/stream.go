@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -20,7 +19,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	isFirstCtxDoneDispose := true
 
 	handleMessages := func(consumerContext stream.ConsumerContext, message *amqp.Message) {
-		log.DefaultLogger.Debug(fmt.Sprintf("Message as string: %v", string(message.Data[0])))
+		log.DefaultLogger.Debug("Received message", "message", string(message.Data[0]))
 
 		timestamped_msg := NewTimestampedMessage(message.Data[0])
 		frame, err := framer.ToFrame(timestamped_msg)

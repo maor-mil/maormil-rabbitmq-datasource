@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/maor2475/rabbitmq-datasource/pkg/rabbitmqclient"
@@ -22,7 +23,7 @@ var (
 	_ instancemgmt.InstanceDisposer = (*RabbitMQDatasource)(nil)
 )
 
-func NewRabbitMQInstance(s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewRabbitMQInstance(ctx context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
 	log.DefaultLogger.Debug("Creating new RabbitMQ Instance...")
 
 	client, err := getDatasourceSettings(s)
