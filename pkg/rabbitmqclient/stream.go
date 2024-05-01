@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
-var ErrConsumerWasAlreadyCreated = errors.New("Consumer was already created")
+var ErrConsumerWasAlreadyCreated = errors.New("consumer was already created")
 
 type Stream interface {
 	CreateStream(env *stream.Environment) error
-	Consume(*stream.Environment, stream.MessagesHandler) error
+	Consume(*stream.Environment, stream.MessagesHandler) (*stream.Consumer, error)
+	GetConsumer() *stream.Consumer
 	CloseConsumer() error
 }
 
@@ -39,9 +38,9 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 	return err
 }
 
-func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) error {
+func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) (*stream.Consumer, error) {
 	if streamOptions.Consumer != nil {
-		return failOnError(ErrConsumerWasAlreadyCreated,
+		return nil, failOnError(ErrConsumerWasAlreadyCreated,
 			fmt.Sprintf("StreamName: %s; ConsumerName:%s",
 				streamOptions.ConsumerName,
 				streamOptions.getConsumerName(),
@@ -57,11 +56,14 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 			SetCRCCheck(streamOptions.Crc),                   // Disabled CRC control increase the performances
 	)
 	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
+		return nil, failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
 	}
 	streamOptions.Consumer = consumer
-	defer consumerClose(consumer.NotifyClose())
-	return nil
+	return streamOptions.Consumer, nil
+}
+
+func (streamOptions *StreamOptions) GetConsumer() *stream.Consumer {
+	return streamOptions.Consumer
 }
 
 func (streamOptions *StreamOptions) getOffsetSettings() stream.OffsetSpecification {
@@ -81,15 +83,13 @@ func (streamOptions *StreamOptions) getConsumerName() string {
 	return streamOptions.ConsumerName
 }
 
-func consumerClose(channelClose stream.ChannelClose) {
-	event := <-channelClose
-	log.DefaultLogger.Debug("Consumer was closed", "consumer", event.Name, "stream", event.StreamName, "reason", event.Reason)
-}
-
 func (streamOptions *StreamOptions) CloseConsumer() error {
-	streamOptions.Consumer = nil
-	if err := streamOptions.Consumer.Close(); err != nil {
+	if streamOptions.Consumer == nil {
+		return nil
+	} else if err := streamOptions.Consumer.Close(); err != nil {
 		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
+	} else {
+		streamOptions.Consumer = nil
+		return nil
 	}
-	return nil
 }

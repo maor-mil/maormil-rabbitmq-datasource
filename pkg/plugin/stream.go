@@ -16,7 +16,6 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	log.DefaultLogger.Info("Called RunStream method", "RabbitMQ Stream", ds.Client.ToString())
 
 	framer := NewFramer()
-	isFirstCtxDoneDispose := true
 
 	handleMessages := func(consumerContext stream.ConsumerContext, message *amqp.Message) {
 		log.DefaultLogger.Debug("Received message", "message", string(message.Data[0]))
@@ -24,40 +23,41 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 		timestamped_msg := NewTimestampedMessage(message.Data[0])
 		frame, err := framer.ToFrame(timestamped_msg)
 		if err != nil {
-			log.DefaultLogger.Error("Error creating frame", "error", err)
+			log.DefaultLogger.Error("Error creating frame from message", "message", string(message.Data[0]), "error", err)
 			return
 		}
 
-		err = sender.SendFrame(frame, data.IncludeAll)
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				if isFirstCtxDoneDispose {
-					log.DefaultLogger.Debug("Stopped streaming - Context Canceled (in RabbitMQ Consumer handleMessages function)")
-					ds.Client.Dispose()
-					isFirstCtxDoneDispose = false
-				}
-				return
-			default:
-				log.DefaultLogger.Error("Error sending frame", "error", err)
+		select {
+		case <-ctx.Done():
+			log.DefaultLogger.Debug("Error sending frame because context canceled", "frame", frame, "error", err)
+		default:
+			err = sender.SendFrame(frame, data.IncludeAll)
+			if err != nil {
+				log.DefaultLogger.Error("Error sending frame", "frame", frame, "error", err)
 			}
 		}
 	}
 
 	for {
 		log.DefaultLogger.Debug("Creating new consumer", "RabbitMQ Stream", ds.Client.ToString())
-		err := ds.Client.Consume(handleMessages)
+		if !ds.Client.IsConnected() {
+			_, err := ds.Client.Connect()
+			if err != nil {
+				return err
+			}
+		}
+		consumer, err := ds.Client.Consume(handleMessages)
 		if errors.Is(err, rabbitmqclient.ErrConsumerWasAlreadyCreated) {
 			return nil
 		}
 
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Debug("Stopped streaming - Context Canceled (in RunStream main for loop)")
+			log.DefaultLogger.Info("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
 			ds.Client.Dispose()
-			return ctx.Err()
-		default:
-			log.DefaultLogger.Debug(
+			return nil
+		case <-consumer.NotifyClose():
+			log.DefaultLogger.Info(
 				"Something went wrong with the RabbitMQ. Trying to reconnect...",
 				"RabbitMQ Stream", ds.Client.ToString(),
 			)
