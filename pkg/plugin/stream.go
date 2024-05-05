@@ -53,7 +53,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Info("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
+			log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
 			ds.Client.Dispose()
 			return nil
 		case <-consumer.NotifyClose():

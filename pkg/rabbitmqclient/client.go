@@ -203,8 +203,10 @@ func (client *RabbitMQStreamClient) GetConsumer() *stream.Consumer {
 }
 
 func (client *RabbitMQStreamClient) Dispose() {
-	log.DefaultLogger.Info("Disposing RabbitMQ Stream", "RabbitMQ Stream", client.ToString())
-	client.CloseConnection()
+	if client.IsConnected() {
+		log.DefaultLogger.Debug("Disposing RabbitMQ Stream", "RabbitMQ Stream", client.ToString())
+		client.CloseConnection()
+	}
 }
 
 func (client *RabbitMQStreamClient) ToString() string {
