@@ -2,7 +2,7 @@
 
 ## 1.0.2-unsigned (Unreleased)
 
-* Fixed 'Plugin unavilable' issue.
+* Fixed 'Plugin unavailable' issue.
 * Changed some log messages format in the backend.
 * Changed query instruction from pressing 'Refresh Query' to 'Refresh Dashboard'.
 
