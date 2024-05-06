@@ -25,10 +25,10 @@ var RABBITMQ_PASSWORD = "guest"
 
 // Set SHOULD_CREATE_STRAEM to true if your RabbitQM Datasource didn't already create the stream
 var SHOULD_CREATE_STRAEM = false
-var RABBITMQ_STREAM_NAME = "test.stream"
+var RABBITMQ_STREAM_NAME = "demo.stream"
 var RABBITMQ_STREAM_MB_BYTE_CAPACITY int64 = 500
 
-var STREAM_PUBLISHER_NAME = "test1"
+var STREAM_PUBLISHER_NAME = "demo.publisher"
 var GENERATED_NUMBERS_MINIMUM_VALUE = 100
 var GENERATED_NUMBERS_MAXIMUM_VALUE = 20000
 
