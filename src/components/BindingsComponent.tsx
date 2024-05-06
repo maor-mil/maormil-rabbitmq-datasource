@@ -9,6 +9,7 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 export function BindingsComponent({ bindings, setBindings }: { bindings: BindingsOptions, setBindings: React.Dispatch<React.SetStateAction<BindingsOptions>>}) {
     const addbinding = () => {
         const newbinding: BindingOptions = {
+            shouldDisposeBinding: false,
             isQueueBinding: true,
             senderName: "Some Exchange",
             routingKey: "/",
@@ -34,6 +35,13 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
         {
         bindings.map((value, index) => (
             <>
+                <InlineField label="Should Dispose Binding" labelWidth={LABEL_WIDTH} tooltip="Should unbind when the RabbitMQ datasource is deleted">
+                    <InlineSwitch
+                        onChange={ event => updatebindingProperty(index, 'shouldDisposeBinding', event.currentTarget.checked)}
+                        value={value.shouldDisposeBinding}
+                        width={SWITCH_WIDTH}
+                    />
+                </InlineField>
                 <InlineField label="Is Queue Binding" labelWidth={LABEL_WIDTH} tooltip="Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange">
                     <InlineSwitch
                         onChange={ event => updatebindingProperty(index, 'isQueueBinding', event.currentTarget.checked)}

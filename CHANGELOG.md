@@ -5,6 +5,7 @@
 * Fixed 'Plugin unavailable' issue.
 * Changed some log messages format in the backend.
 * Changed query instruction from pressing 'Refresh Query' to 'Refresh Dashboard'.
+* The user can now choose to delete stream/exchanges/bindings when the RabbitMQ Datasource is deleted.
 
 ## 1.0.1-unsigned (Unreleased)
 

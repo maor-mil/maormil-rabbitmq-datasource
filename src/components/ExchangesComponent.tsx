@@ -9,6 +9,8 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: ExchangesOptions, setExchanges: React.Dispatch<React.SetStateAction<ExchangesOptions>>}) {
     const addExchange = () => {
         const newExchange: ExchangeOptions = {
+            shouldDisposeExchange: true,
+            disposeIfUnused: true,
             name: "Type the Exchange name",
             type: "fanout",
             durable: true,
@@ -35,6 +37,20 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
         {
         exchanges.map((value, index) => (
             <>
+                <InlineField label="Should Dispose Exchange" labelWidth={LABEL_WIDTH} tooltip="Should delete this exchange when the RabbitMQ datasource is deleted">
+                    <InlineSwitch
+                        onChange={ event => updateExchangeProperty(index, 'shouldDisposeExchange', event.currentTarget.checked)}
+                        value={value.shouldDisposeExchange}
+                        width={SWITCH_WIDTH}
+                    />
+                </InlineField>
+                <InlineField label="Dispose if Unused" labelWidth={LABEL_WIDTH} tooltip="Delete this exchange only if it doesn't have bindings (and if 'Should Dispose Exchange' is set ON)">
+                    <InlineSwitch
+                        onChange={ event => updateExchangeProperty(index, 'disposeIfUnused', event.currentTarget.checked)}
+                        value={value.disposeIfUnused}
+                        width={SWITCH_WIDTH}
+                    />
+                </InlineField>
                 <InlineField label="Exchange Name" labelWidth={LABEL_WIDTH} tooltip="The exchange name that should exist in the RabbitMQ">
                     <Input
                         onChange={ event => updateExchangeProperty(index, 'name', event.currentTarget.value)}

@@ -40,7 +40,7 @@ Alternatively, you can manually download the [latest](https://github.com/maor-mi
 ### Configuration Editor - Configure your RabbitMQ Stream
 ![New RabbitMQ Datasource](https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_datasource.png?raw=true)
 
-[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you are not sure some field means just leave it with the default value)
+[Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you are not sure some field means just leave it with the default value).
 
 #### Connection
 Basic connection section to connect the RabbitMQ.
@@ -78,6 +78,7 @@ RabbitMQ stream and the settings of its consumer.
 
 | Field                    | Type     | Is Required | Default Value       | Description                                               |
 |--------------------------|----------|-------------|---------------------|-----------------------------------------------------------|
+| `Should Dispose Stream`  | `bool`   | Yes         | `true`              | Should delete this stream (in the RabbitMQ) when the RabbitMQ datasource is deleted |
 | `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                      |
 | `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                    |
 | `Offset from Start`      | `bool`   | Yes         | `true`              | Should the consumer consume messages from the start or the end of the stored messages in the stream |
@@ -95,14 +96,16 @@ If the exchange already exists in the RabbitMQ, the plugin will not recreate the
 <img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/exchanges_section.png?raw=true"
  alt="Exchanges Section" width="400"/>
 
-| Field              | Type     | Is Required | Default Value              | Description                                              |
-|--------------------|----------|-------------|----------------------------|----------------------------------------------------------|
-| `Exchange Name`    | `string` | Yes         | `"Type the Exchange Name"` | The exchange name that should exist in the RabbitMQ      |
-| `Exchange Type`    | `string` | Yes         | `fanout`                   | The exchange type (should only accept known RabbitMQ exchange types) |
-| `Is Durable`       | `bool`   | Yes         | `true`                     | Should the exchange be durable                           |
-| `Is Auto Deleted`  | `bool`   | Yes         | `false`                    | Should the exchange be auto deleted                      |
-| `Is Internal`      | `bool`   | Yes         | `false`                    | Should the exchange be internal                          |
-| `Is NoWait`        | `bool`   | Yes         | `false`                    | Should the exchange be noWait                            |
+| Field                     | Type     | Is Required | Default Value              | Description                                                          |
+|---------------------------|----------|-------------|----------------------------|----------------------------------------------------------------------|
+| `Should Dispose Exchange` | `bool`   | Yes         | `true`                     | Should delete this exchange when the RabbitMQ datasource is deleted  |
+| `Dispose if Unused`       | `bool`   | Yes         | `true`                     | Delete this exchange only if it doesn't have bindings (and if 'Should Dispose Exchange' is set ON) |
+| `Exchange Name`           | `string` | Yes         | `"Type the Exchange Name"` | The exchange name that should exist in the RabbitMQ                  |
+| `Exchange Type`           | `string` | Yes         | `fanout`                   | The exchange type (should only accept known RabbitMQ exchange types) |
+| `Is Durable`              | `bool`   | Yes         | `true`                     | Should the exchange be durable                                       |
+| `Is Auto Deleted`         | `bool`   | Yes         | `false`                    | Should the exchange be auto deleted                                  |
+| `Is Internal`             | `bool`   | Yes         | `false`                    | Should the exchange be internal                                      |
+| `Is NoWait`               | `bool`   | Yes         | `false`                    | Should the exchange be noWait                                        |
 ---
 
 #### Bindings
@@ -114,13 +117,14 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 <img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/bindings_section.png?raw=true"
  alt="Bindings Section" width="400"/>
 
-| Field              | Type     | Is Required | Default Value                                          | Description                                              |
-|--------------------|----------|-------------|--------------------------------------------------------|----------------------------------------------------------|
-| `Is Queue Binding` | `bool`   | Yes         | `true`                                                 | Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange) |
-| `Sender Name`      | `string` | Yes         | `"Some Exchange"`                                      | The exchange to bind from |
-| `Routing Key`      | `string` | Yes         | `"/"`                                                  | The routing key to bind between the sender exchange and the receiver |
-| `Receiver Name`    | `string` | Yes         | `"Probably your stream name or some another exchange"` | The stream/queue/exchange to bind to |
-| `Is No Wait`       | `bool`   | Yes         | `false`                                                | Should binding be noWait |
+| Field                    | Type     | Is Required | Default Value                                          | Description                                              |
+|--------------------------|----------|-------------|--------------------------------------------------------|----------------------------------------------------------|
+| `Should Dispose Binding` | `bool`   | Yes         | `true`                                                 | Should unbind when the RabbitMQ datasource is deleted    |
+| `Is Queue Binding`       | `bool`   | Yes         | `true`                                                 | Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange) |
+| `Sender Name`            | `string` | Yes         | `"Some Exchange"`                                      | The exchange to bind from                                |
+| `Routing Key`            | `string` | Yes         | `"/"`                                                  | The routing key to bind between the sender exchange and the receiver |
+| `Receiver Name`          | `string` | Yes         | `"Probably your stream name or some another exchange"` | The stream/queue/exchange to bind to                     |
+| `Is No Wait`             | `bool`   | Yes         | `false`                                                | Should binding be noWait                                 |
 ---
 
 ## Query Editor
@@ -139,15 +143,16 @@ The plugin handle most chaos scenarios automatically:
 * If the Grafana is down once it goes up again, the consumer will be recreated.
 * If the RabbitMQ is down the plugin will try to keep reconnecting to the RabbitMQ (it will only stop if the datasource is deleted by the user).
 
-### Important Note about the Deletion of RabbitMQ Datasource
-**If the user decides to remove the RabbitMQ Datasource (from the Grafana) - ONLY THE CONSUMER will be removed from the RabbitMQ.** The stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ. So if you wish for them to be deleted, you must do it manually.
+## Important Note about the Deletion of RabbitMQ Datasource
+The consumer of the stream is created once the user created a panel of the RabbitMQ datasource. 
+If the user decides to remove the RabbitMQ Datasource before the consumer was created, the stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ even if you set them to be disposed. So if you wish for them to be deleted, you must do it manually.
+If the consumer was already created, the stream, exchanges and bindings will be disposed (deleted) based on the settings of the RabbitMQ datasource you had set.
 
 ## Known limitations
 * This plugin does not support advanced TLS Configuration for RabbitMQ connections.
 * This plugin only supports JSON based messages that and throws away any non JSON message. The JSON can contain numbers, strings, booleans, and JSON formatted values. Nested object values can be extracted using the Extract Fields transformation (or being processed by the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin).
 * **This plugin automatically attaches timestamps to the messages** when they are received. Timestamps included in the message body can be parsed using the Convert field type transformation. **The key name of the added timestamp is: `RmqMsgConsumedTimestamp`**
 * Currently the only supported offsets are First and Last (no specific offset or timestamp support when consuming messages from the RabbitMQ streams).
-* As written above - **If the user decides to remove the RabbitMQ Datasource (from the Grafana) - ONLY THE CONSUMER will be removed from the RabbitMQ.** The stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ. So if you wish for them to be deleted, you must do it manually.
 
 ## Known Errors and Causes When Trying To Connect To RabbitMQ
 

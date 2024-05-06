@@ -13,7 +13,6 @@ type Client interface {
 	Connect() (Client, error)
 	Reconnect() Client
 	Consume(stream.MessagesHandler) (*stream.Consumer, error)
-	GetConsumer() *stream.Consumer
 	Dispose()
 	ToString() string
 }
@@ -120,9 +119,27 @@ func (client *RabbitMQStreamClient) CreateExchanges() (*RabbitMQStreamClient, er
 	return client, nil
 }
 
+func (client *RabbitMQStreamClient) DisposeExchanges() (*RabbitMQStreamClient, error) {
+	for exchangeIndex := 0; exchangeIndex < len(client.Exchanges); exchangeIndex += 1 {
+		if err := client.Exchanges[exchangeIndex].DisposeExchange(client.RabbitMQOptions); err != nil {
+			return client, err
+		}
+	}
+	return client, nil
+}
+
 func (client *RabbitMQStreamClient) CreateBindings() (*RabbitMQStreamClient, error) {
 	for bindingIndex := 0; bindingIndex < len(client.Bindings); bindingIndex += 1 {
 		if err := client.Bindings[bindingIndex].CreateBinding(client.RabbitMQOptions); err != nil {
+			return client, err
+		}
+	}
+	return client, nil
+}
+
+func (client *RabbitMQStreamClient) DisposeBindings() (*RabbitMQStreamClient, error) {
+	for bindingIndex := 0; bindingIndex < len(client.Bindings); bindingIndex += 1 {
+		if err := client.Bindings[bindingIndex].DisposeBinding(client.RabbitMQOptions); err != nil {
 			return client, err
 		}
 	}
@@ -167,14 +184,26 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 }
 
 func (client *RabbitMQStreamClient) CloseConnection() {
-	client.Stream.CloseConsumer()
-	if err := client.Env.DeleteStream(client.RabbitMQOptions.StreamOptions.StreamName); err != nil {
-		log.DefaultLogger.Debug("DeleteStream error", "error", err)
+	if err := client.Stream.DisposeStream(client.Env); err != nil {
+		log.DefaultLogger.Debug("DisposeStream error", "error", err, "RabbitMQ Stream", client.ToString())
 	} else {
-		log.DefaultLogger.Debug("Removed stream", "RabbitMQ Stream", client.ToString())
+		log.DefaultLogger.Debug("Disposed Stream", "RabbitMQ Stream", client.ToString())
 	}
+
+	if _, err := client.DisposeBindings(); err != nil {
+		log.DefaultLogger.Debug("DisposeBindings error", "error", err, "RabbitMQ Stream", client.ToString())
+	} else {
+		log.DefaultLogger.Debug("Disposed bindings", "RabbitMQ Stream", client.ToString())
+	}
+
+	if _, err := client.DisposeExchanges(); err != nil {
+		log.DefaultLogger.Debug("DisposeExchanges error", "error", err, "RabbitMQ Stream", client.ToString())
+	} else {
+		log.DefaultLogger.Debug("Disposed exchanges", "RabbitMQ Stream", client.ToString())
+	}
+
 	if err := client.Env.Close(); err != nil {
-		log.DefaultLogger.Debug("Env.Close() failed", "error", err)
+		log.DefaultLogger.Debug("Env.Close() error", "error", err, "RabbitMQ Stream", client.ToString())
 	} else {
 		log.DefaultLogger.Debug("Closed RabbitMQ environment", "RabbitMQ Stream", client.ToString())
 	}
@@ -184,6 +213,7 @@ func (client *RabbitMQStreamClient) Reconnect() Client {
 	for {
 		time.Sleep(timeToReconnect)
 		log.DefaultLogger.Debug("Trying to reconnect to RabbitMQ", "RabbitMQ Stream", client.ToString())
+
 		client.CloseConnection()
 		_, err := client.Connect()
 		if err != nil {
@@ -196,10 +226,6 @@ func (client *RabbitMQStreamClient) Reconnect() Client {
 
 func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandler) (*stream.Consumer, error) {
 	return client.Stream.Consume(client.Env, messageHandler)
-}
-
-func (client *RabbitMQStreamClient) GetConsumer() *stream.Consumer {
-	return client.RabbitMQOptions.StreamOptions.GetConsumer()
 }
 
 func (client *RabbitMQStreamClient) Dispose() {

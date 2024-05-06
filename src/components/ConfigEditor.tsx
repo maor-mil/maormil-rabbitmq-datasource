@@ -30,6 +30,7 @@ export const ConfigEditor = (props: Props) => {
   const DEFAULT_READ_BUFFER = 65536;
   const DEFAULT_NO_DELAY = false;
 
+  const DEFAULT_SHOULD_DISPOSE_STREAM = true;
   const DEFAULT_STREAM_NAME = "";
   const DEFAULT_STREAM_CONSUMER_NAME = "";
   const DEFAULT_OFFSET_FROM_START = true;
@@ -58,6 +59,7 @@ export const ConfigEditor = (props: Props) => {
   };
 
   const [streamOptions, setStreamOptions] = useState<StreamOptions>({
+    shouldDisposeStream: jsonData?.streamOptions?.shouldDisposeStream ?? DEFAULT_SHOULD_DISPOSE_STREAM,
     streamName: jsonData?.streamOptions?.streamName ?? DEFAULT_STREAM_NAME,
     consumerName: jsonData?.streamOptions?.consumerName ?? DEFAULT_STREAM_CONSUMER_NAME,
     maxAge: jsonData?.streamOptions?.maxAge ?? DEFAULT_STREAM_MAX_AGE,
@@ -240,6 +242,18 @@ export const ConfigEditor = (props: Props) => {
         </InlineField>
       </FieldSet>
       <FieldSet label="Stream Settings">
+      <InlineField label="Should Dispose Stream" labelWidth={LABEL_WIDTH} tooltip="Should delete this stream (in the RabbitMQ) when the RabbitMQ datasource is deleted">
+          <InlineSwitch
+            onChange={(event) =>
+              setStreamOptions({
+                ...streamOptions,
+                shouldDisposeStream: event!.currentTarget.checked,
+              })
+            }
+            value={streamOptions.shouldDisposeStream}
+            width={SWITCH_WIDTH}
+          />
+        </InlineField>
         <InlineField label="Stream Name" labelWidth={LABEL_WIDTH} tooltip="The stream name that will be created">
           <Input
             onChange={(event) =>

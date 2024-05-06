@@ -11,10 +11,9 @@ import (
 var ErrConsumerWasAlreadyCreated = errors.New("consumer was already created")
 
 type Stream interface {
-	CreateStream(env *stream.Environment) error
+	CreateStream(*stream.Environment) error
+	DisposeStream(*stream.Environment) error
 	Consume(*stream.Environment, stream.MessagesHandler) (*stream.Consumer, error)
-	GetConsumer() *stream.Consumer
-	CloseConsumer() error
 }
 
 type StreamOptions struct {
@@ -25,6 +24,7 @@ type StreamOptions struct {
 	ConsumerName        string        `json:"consumerName"`
 	OffsetFromStart     bool          `json:"offsetFromStart"`
 	Crc                 bool          `json:"crc"`
+	ShouldDisposeStream bool          `json:"ShouldDisposeStream"`
 	Consumer            *stream.Consumer
 }
 
@@ -36,6 +36,19 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 			SetMaxSegmentSizeBytes(stream.ByteCapacity{}.B(streamOptions.MaxSegmentSizeBytes)))
 
 	return err
+}
+
+func (streamOptions *StreamOptions) DisposeStream(env *stream.Environment) error {
+	err := streamOptions.closeConsumer()
+	if err != nil {
+		return err
+	}
+
+	if streamOptions.ShouldDisposeStream {
+		return env.DeleteStream(streamOptions.StreamName)
+	}
+
+	return nil
 }
 
 func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) (*stream.Consumer, error) {
@@ -62,10 +75,6 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 	return streamOptions.Consumer, nil
 }
 
-func (streamOptions *StreamOptions) GetConsumer() *stream.Consumer {
-	return streamOptions.Consumer
-}
-
 func (streamOptions *StreamOptions) getOffsetSettings() stream.OffsetSpecification {
 	offsetSettings := stream.OffsetSpecification{}
 	if streamOptions.OffsetFromStart {
@@ -83,7 +92,7 @@ func (streamOptions *StreamOptions) getConsumerName() string {
 	return streamOptions.ConsumerName
 }
 
-func (streamOptions *StreamOptions) CloseConsumer() error {
+func (streamOptions *StreamOptions) closeConsumer() error {
 	if streamOptions.Consumer == nil {
 		return nil
 	} else if err := streamOptions.Consumer.Close(); err != nil {
