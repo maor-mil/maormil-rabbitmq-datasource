@@ -21,7 +21,7 @@ export const ConfigEditor = (props: Props) => {
   const DEFAULT_AMQP_PORT = 5672;
   const DEFAULT_STREAM_PORT = 5552;
   const DEFAULT_VHOST = "/";
-  const DEFAULT_TLS_CONNECTION = false;
+  const DEFAULT_TLS_CONNECTION = true;
   const DEFAULT_USERNAME = "guest";
   const DEFAULT_PASSWORD = "guest";
   const DEFAULT_REQUESTED_HEARTBEAT = 60;
@@ -31,7 +31,7 @@ export const ConfigEditor = (props: Props) => {
   const DEFAULT_NO_DELAY = false;
 
   const DEFAULT_SHOULD_DISPOSE_STREAM = true;
-  const DEFAULT_STREAM_NAME = "";
+  const DEFAULT_STREAM_NAME = "rabbitmq.stream";
   const DEFAULT_STREAM_CONSUMER_NAME = "";
   const DEFAULT_OFFSET_FROM_START = true;
   const DEFAULT_STREAM_MAX_AGE = 1_000_000_000 * 60 * 60;
@@ -143,6 +143,14 @@ export const ConfigEditor = (props: Props) => {
         jsonData: {
           ...getDefaultValues(streamOptions, exchangesOptions, bindingsOptions),
         },
+        secureJsonFields: {
+          ...options.secureJsonFields,
+          password: true,
+        },
+        secureJsonData: {
+          ...options.secureJsonData,
+          password: DEFAULT_PASSWORD,
+        },
       });
     }
   }, []);
@@ -234,7 +242,6 @@ export const ConfigEditor = (props: Props) => {
           <SecretInput
             isConfigured={!!secureJsonFields.password}
             value={secureJsonData?.password ?? DEFAULT_PASSWORD}
-            placeholder={DEFAULT_PASSWORD}
             width={INPUT_WIDTH}
             onReset={onResetPassword}
             onChange={onPasswordChange}
@@ -259,11 +266,10 @@ export const ConfigEditor = (props: Props) => {
             onChange={(event) =>
               setStreamOptions({
                 ...streamOptions,
-                streamName: event.currentTarget.value,
+                streamName: event.currentTarget.value || DEFAULT_STREAM_NAME,
               })
             }
             value={streamOptions.streamName}
-            placeholder='Stream Name'
             width={INPUT_WIDTH}
           />
         </InlineField>

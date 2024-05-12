@@ -7,17 +7,24 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 
 
 export function BindingsComponent({ bindings, setBindings }: { bindings: BindingsOptions, setBindings: React.Dispatch<React.SetStateAction<BindingsOptions>>}) {
-    const addbinding = () => {
-        const newbinding: BindingOptions = {
-            shouldDisposeBinding: false,
-            isQueueBinding: true,
-            senderName: "Some Exchange",
-            routingKey: "/",
-            receiverName: "Probably your stream name or some another exchange",
-            noWait: false
+    const DEFAULT_SHOULD_DISPOSE_BINDING = false;
+    const DEFAULT_IS_QUEUE_BINDING = true;
+    const DEFAULT_SENDER_NAME = "Some Exchange";
+    const DEFAULT_ROUTING_KEY = "/";
+    const DEFAULT_RECEIVER_NAME = "Probably your stream name or some another exchange";
+    const DEFAULT_NO_WAIT = false;
+
+    const addBinding = () => {
+        const newBinding: BindingOptions = {
+            shouldDisposeBinding: DEFAULT_SHOULD_DISPOSE_BINDING,
+            isQueueBinding: DEFAULT_IS_QUEUE_BINDING,
+            senderName: DEFAULT_SENDER_NAME,
+            routingKey: DEFAULT_ROUTING_KEY,
+            receiverName: DEFAULT_RECEIVER_NAME,
+            noWait: DEFAULT_NO_WAIT
         }
 
-        setBindings(prevBindings => [...prevBindings, newbinding]);
+        setBindings(prevBindings => [...prevBindings, newBinding]);
     }
 
     const updatebindingProperty = (index: number, property: keyof BindingOptions, value: string | boolean) => {
@@ -51,21 +58,21 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
                 </InlineField>
                 <InlineField label="Sender Name" labelWidth={LABEL_WIDTH} tooltip="The exchange to bind from">
                     <Input
-                        onChange={ event => updatebindingProperty(index, 'senderName', event.currentTarget.value)}
+                        onChange={ event => updatebindingProperty(index, 'senderName', event.currentTarget.value || DEFAULT_SENDER_NAME)}
                         value={value.senderName}
                         width={INPUT_WIDTH}
                     />
                 </InlineField>
                 <InlineField label="Routing Key" labelWidth={LABEL_WIDTH} tooltip="The routing key to bind between the sender exchange and the receiver">
                     <Input
-                        onChange={ event => updatebindingProperty(index, 'routingKey', event.currentTarget.value)}
+                        onChange={ event => updatebindingProperty(index, 'routingKey', event.currentTarget.value || DEFAULT_ROUTING_KEY)}
                         value={value.routingKey}
                         width={INPUT_WIDTH}
                     />
                 </InlineField>
                 <InlineField label="Receiver Name" labelWidth={LABEL_WIDTH} tooltip="The stream/queue/exchange to bind to">
                     <Input
-                        onChange={ event => updatebindingProperty(index, 'receiverName', event.currentTarget.value)}
+                        onChange={ event => updatebindingProperty(index, 'receiverName', event.currentTarget.value || DEFAULT_RECEIVER_NAME)}
                         value={value.receiverName}
                         width={INPUT_WIDTH}
                     />
@@ -81,6 +88,6 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
             </>
             ))
         }
-        <Button variant="secondary" fill="text" icon="plus" onClick={addbinding} tooltip="Add" aria-label="Add" />
+        <Button variant="secondary" fill="text" icon="plus" onClick={addBinding} tooltip="Add" aria-label="Add" />
     </>)
 };

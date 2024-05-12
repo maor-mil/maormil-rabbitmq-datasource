@@ -7,16 +7,26 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 
 
 export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: ExchangesOptions, setExchanges: React.Dispatch<React.SetStateAction<ExchangesOptions>>}) {
+    const DEFAULT_SHOULD_DISPOSE_EXCHANGE = true;
+    const DEFAULT_DISPOSE_IF_UNUSED = true;
+    const DEFAULT_NAME = "Exchange name";
+    const DEFAULT_TYPE = "fanout";
+    const DEFAULT_DURABLE = true;
+    const DEFAULT_AUTO_DELETED = false;
+    const DEFAULT_INTERNAL = false;
+    const DEFAULT_NO_WAIT = true;
+    
+
     const addExchange = () => {
         const newExchange: ExchangeOptions = {
-            shouldDisposeExchange: true,
-            disposeIfUnused: true,
-            name: "Type the Exchange name",
-            type: "fanout",
-            durable: true,
-            autoDeleted: false,
-            internal: false,
-            noWait: false
+            shouldDisposeExchange: DEFAULT_SHOULD_DISPOSE_EXCHANGE,
+            disposeIfUnused: DEFAULT_DISPOSE_IF_UNUSED,
+            name: DEFAULT_NAME,
+            type: DEFAULT_TYPE,
+            durable: DEFAULT_DURABLE,
+            autoDeleted: DEFAULT_AUTO_DELETED,
+            internal: DEFAULT_INTERNAL,
+            noWait: DEFAULT_NO_WAIT
         }
 
         setExchanges(prevExchanges => [...prevExchanges, newExchange]);
@@ -53,7 +63,7 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
                 </InlineField>
                 <InlineField label="Exchange Name" labelWidth={LABEL_WIDTH} tooltip="The exchange name that should exist in the RabbitMQ">
                     <Input
-                        onChange={ event => updateExchangeProperty(index, 'name', event.currentTarget.value)}
+                        onChange={ event => updateExchangeProperty(index, 'name', event.currentTarget.value || DEFAULT_NAME)}
                         value={value.name}
                         width={INPUT_WIDTH}
                     />
@@ -62,7 +72,7 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
                 (should only accept known RabbitMQ exchange types like: fanout | direct | topic | headers | x-consistent-hash).
                  This field is free-string for any future new RabbitMQ exchange type that might be added.">
                     <Input
-                        onChange={ event => updateExchangeProperty(index, 'type', event.currentTarget.value)}
+                        onChange={ event => updateExchangeProperty(index, 'type', event.currentTarget.value || DEFAULT_TYPE)}
                         value={value.type}
                         width={INPUT_WIDTH}
                     />
