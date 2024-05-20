@@ -79,7 +79,7 @@ RabbitMQ stream and the settings of its consumer.
 | Field                    | Type     | Is Required | Default Value       | Description                                               |
 |--------------------------|----------|-------------|---------------------|-----------------------------------------------------------|
 | `Should Dispose Stream`  | `bool`   | Yes         | `true`              | Should delete this stream (in the RabbitMQ) when the RabbitMQ datasource is deleted |
-| `Stream Name`            | `string` | Yes         | `""`                | The stream name that will be created                      |
+| `Stream Name`            | `string` | Yes         | `"rabbitmq.stream"` | The stream name that will be created                      |
 | `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                    |
 | `Offset from Start`      | `bool`   | Yes         | `true`              | Should the consumer consume messages from the start or the end of the stored messages in the stream |
 | `Max Age`                | `int`    | Yes         | `3,600,000,000,000` | The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit) |
@@ -100,8 +100,8 @@ If the exchange already exists in the RabbitMQ, the plugin will not recreate the
 |---------------------------|----------|-------------|----------------------------|----------------------------------------------------------------------|
 | `Should Dispose Exchange` | `bool`   | Yes         | `true`                     | Should delete this exchange when the RabbitMQ datasource is deleted  |
 | `Dispose if Unused`       | `bool`   | Yes         | `true`                     | Delete this exchange only if it doesn't have bindings (and if 'Should Dispose Exchange' is set ON) |
-| `Exchange Name`           | `string` | Yes         | `"Type the Exchange Name"` | The exchange name that should exist in the RabbitMQ                  |
-| `Exchange Type`           | `string` | Yes         | `fanout`                   | The exchange type (should only accept known RabbitMQ exchange types) |
+| `Exchange Name`           | `string` | Yes         | `"Exchange Name"`          | The exchange name that should exist in the RabbitMQ                  |
+| `Exchange Type`           | `string` | Yes         | `fanout`                   | The exchange type                                                    |
 | `Is Durable`              | `bool`   | Yes         | `true`                     | Should the exchange be durable                                       |
 | `Is Auto Deleted`         | `bool`   | Yes         | `false`                    | Should the exchange be auto deleted                                  |
 | `Is Internal`             | `bool`   | Yes         | `false`                    | Should the exchange be internal                                      |
