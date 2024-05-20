@@ -6,6 +6,8 @@
 * Changed some log messages format in the backend.
 * Changed query instruction from pressing 'Refresh Query' to 'Refresh Dashboard'.
 * The user can now choose to delete stream/exchanges/bindings when the RabbitMQ Datasource is deleted.
+* Changed the plugin name from 'maor2475-rabbitmq-datasource' to 'maormil-rabbitmq-datasource'.
+* Changed the Exchange Type selection from free text, to strict select between all the RabbitMQ exchange type options.
 
 ## 1.0.1-unsigned (Unreleased)
 
