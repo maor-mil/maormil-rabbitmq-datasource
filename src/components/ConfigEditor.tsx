@@ -353,13 +353,13 @@ export const ConfigEditor = (props: Props) => {
           />
         </InlineField>
       </FieldSet>
-      <FieldSet label="Exchanges (Create new exchanges in the RabbitMQ)">
+      <FieldSet label="Exchanges">
         <ExchangesComponent exchanges={exchangesOptions} setExchanges={setExchanges}/>
       </FieldSet>
-      <FieldSet label="Bindings (Create new bindings in the RabbitMQ)">
+      <FieldSet label="Bindings">
         <BindingsComponent bindings={bindingsOptions} setBindings={setBindings}/>
       </FieldSet>
-      <FieldSet label="Advanced RabbitMQ Stream Settings (Change these only if you really know what you are doing)">
+      <FieldSet label="Advanced RabbitMQ Stream Settings">
         <InlineField label="Requested Heartbeat" labelWidth={LABEL_WIDTH}>
           <Input
             onChange={(event) =>

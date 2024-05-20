@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { InlineField, InlineSwitch, Input, Button } from '@grafana/ui';
+import { InlineField, InlineSwitch, Input, Button, RadioButtonGroup } from '@grafana/ui';
 
 import { ExchangesOptions, ExchangeOptions } from '../types';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
@@ -31,6 +31,24 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
 
         setExchanges(prevExchanges => [...prevExchanges, newExchange]);
     }
+
+    const exchangeTypes = [{
+        label: 'Fanout',
+        value: 'fanout'
+      }, {
+        label: 'Direct',
+        value: 'direct'
+      }, {
+        label: 'Topic',
+        value: 'topic'
+      }, {
+        label: 'Headers',
+        value: 'headers'
+      }, {
+        label: 'X Consistent Hash',
+        value: 'x-consistent-hash'
+      },
+    ];
 
     const updateExchangeProperty = (index: number, property: keyof ExchangeOptions, value: string | boolean) => {
         setExchanges(prevExchanges =>
@@ -68,14 +86,8 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
                         width={INPUT_WIDTH}
                     />
                 </InlineField>
-                <InlineField label="Exchange Type" labelWidth={LABEL_WIDTH} tooltip="The exchange Type 
-                (should only accept known RabbitMQ exchange types like: fanout | direct | topic | headers | x-consistent-hash).
-                 This field is free-string for any future new RabbitMQ exchange type that might be added.">
-                    <Input
-                        onChange={ event => updateExchangeProperty(index, 'type', event.currentTarget.value || DEFAULT_TYPE)}
-                        value={value.type}
-                        width={INPUT_WIDTH}
-                    />
+                <InlineField label="Exchange Type" labelWidth={LABEL_WIDTH} tooltip="The exchange type">
+                    <RadioButtonGroup options={exchangeTypes} value={value.type} onChange={event => updateExchangeProperty(index, 'type', event)} />
                 </InlineField>
                 <InlineField label="Is Durable" labelWidth={LABEL_WIDTH} tooltip="Should the exchange be durable">
                     <InlineSwitch

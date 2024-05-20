@@ -2,7 +2,7 @@ version: '3.0'
 
 services:
   grafana:
-    container_name: 'maor2475-rabbitmq-datasource'
+    container_name: 'maormil-rabbitmq-datasource'
     platform: 'linux/amd64'
     build:
       context: ./.config
@@ -14,5 +14,5 @@ services:
     ports:
       - 3000:3000/tcp
     volumes:
-      - ./dist:/var/lib/grafana/plugins/maor2475-rabbitmq-datasource
+      - ./dist:/var/lib/grafana/plugins/maormil-rabbitmq-datasource
       - ./provisioning:/etc/grafana/provisioning
