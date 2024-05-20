@@ -14,7 +14,7 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
     const DEFAULT_DURABLE = true;
     const DEFAULT_AUTO_DELETED = false;
     const DEFAULT_INTERNAL = false;
-    const DEFAULT_NO_WAIT = true;
+    const DEFAULT_NO_WAIT = false;
     
 
     const addExchange = () => {

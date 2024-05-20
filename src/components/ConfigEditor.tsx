@@ -21,7 +21,7 @@ export const ConfigEditor = (props: Props) => {
   const DEFAULT_AMQP_PORT = 5672;
   const DEFAULT_STREAM_PORT = 5552;
   const DEFAULT_VHOST = "/";
-  const DEFAULT_TLS_CONNECTION = true;
+  const DEFAULT_TLS_CONNECTION = false;
   const DEFAULT_USERNAME = "guest";
   const DEFAULT_PASSWORD = "guest";
   const DEFAULT_REQUESTED_HEARTBEAT = 60;
