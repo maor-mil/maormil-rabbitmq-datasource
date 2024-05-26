@@ -2,7 +2,7 @@
 
 The RabbitMQ Streaming Datasource plugin for realtime data updates in [Grafana](https://grafana.com) Dashboards.
 
-![Demo With Two RabbitMQs](https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/img/demo_with_two_rabbitmqs.gif?raw=true)
+![Demo With Two RabbitMQs](https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/demo_with_two_rabbitmqs.gif?raw=true)
 
 ## What is RabbitMQ Stream?
 If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resources to read from about it:
