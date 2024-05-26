@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/maormil/rabbitmq-datasource/pkg/rabbitmqclient"
+	"github.com/maor2475/rabbitmq-datasource/pkg/rabbitmqclient"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"

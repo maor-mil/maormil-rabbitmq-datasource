@@ -2,7 +2,7 @@ apiVersion: 1
 
 datasources:
   - name: 'rabbitmq'
-    type: 'maormil-rabbitmq-datasource'
+    type: 'maor2475-rabbitmq-datasource'
     access: proxy
     isDefault: false
     orgId: 1
