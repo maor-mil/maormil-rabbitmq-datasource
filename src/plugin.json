@@ -20,10 +20,6 @@
     "links": [],
     "screenshots": [
       {
-        "name": "Demo Two RabbitMQs",
-        "path": "img/demo_with_two_rabbitmqs.gif"
-      },
-      {
         "name": "New RabbitMQ Datasource",
         "path": "screenshots/rabbitmq_datasource.png"
       },
