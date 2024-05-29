@@ -11,4 +11,4 @@ export const QueryEditor = () => {
       </InlineLabel>
     </>
   );
-}
+};

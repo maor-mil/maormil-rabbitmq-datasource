@@ -431,4 +431,4 @@ export const ConfigEditor = (props: Props) => {
       </FieldSet>
     </div>
   );
-}
+};
