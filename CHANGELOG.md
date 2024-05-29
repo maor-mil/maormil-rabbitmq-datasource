@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3-unsigned (Unreleased)
+
+* Update @grafana/create-plugin frontend dependencies and grafana-plugin-sdk-go backend dependencies.
+
 ## 1.0.2-unsigned (Unreleased)
 
 * Fixed 'Plugin unavailable' issue.
