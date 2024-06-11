@@ -100,8 +100,8 @@ If the exchange already exists in the RabbitMQ, the plugin will not recreate the
 |---------------------------|----------|-------------|----------------------------|----------------------------------------------------------------------|
 | `Should Dispose Exchange` | `bool`   | Yes         | `true`                     | Should delete this exchange when the RabbitMQ datasource is deleted  |
 | `Dispose if Unused`       | `bool`   | Yes         | `true`                     | Delete this exchange only if it doesn't have bindings (and if 'Should Dispose Exchange' is set ON) |
-| `Exchange Name`           | `string` | Yes         | `"Exchange Name"`          | The exchange name that should exist in the RabbitMQ                  |
-| `Exchange Type`           | `string` | Yes         | `fanout`                   | The exchange type                                                    |
+| `Exchange Name`           | `string` | Yes         | `"rabbitmq.exchange"`          | The exchange name that should exist in the RabbitMQ                  |
+| `Exchange Type`           | `string` | Yes         | `"fanout"`                   | The exchange type                                                    |
 | `Is Durable`              | `bool`   | Yes         | `true`                     | Should the exchange be durable                                       |
 | `Is Auto Deleted`         | `bool`   | Yes         | `false`                    | Should the exchange be auto deleted                                  |
 | `Is Internal`             | `bool`   | Yes         | `false`                    | Should the exchange be internal                                      |
@@ -121,9 +121,9 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 |--------------------------|----------|-------------|--------------------------------------------------------|----------------------------------------------------------|
 | `Should Dispose Binding` | `bool`   | Yes         | `true`                                                 | Should unbind when the RabbitMQ datasource is deleted    |
 | `Is Queue Binding`       | `bool`   | Yes         | `true`                                                 | Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange) |
-| `Sender Name`            | `string` | Yes         | `"Some Exchange"`                                      | The exchange to bind from                                |
+| `Sender Name`            | `string` | Yes         | `"rabbitmq.exchange"`                                      | The exchange to bind from                                |
 | `Routing Key`            | `string` | Yes         | `"/"`                                                  | The routing key to bind between the sender exchange and the receiver |
-| `Receiver Name`          | `string` | Yes         | `"Probably your stream name or some another exchange"` | The stream/queue/exchange to bind to                     |
+| `Receiver Name`          | `string` | Yes         | `"rabbitmq.stream"` | The stream/queue/exchange to bind to                     |
 | `Is No Wait`             | `bool`   | Yes         | `false`                                                | Should binding be noWait                                 |
 ---
 

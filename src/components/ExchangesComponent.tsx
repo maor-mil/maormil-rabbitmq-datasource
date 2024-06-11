@@ -9,7 +9,7 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: ExchangesOptions, setExchanges: React.Dispatch<React.SetStateAction<ExchangesOptions>>}) {
     const DEFAULT_SHOULD_DISPOSE_EXCHANGE = true;
     const DEFAULT_DISPOSE_IF_UNUSED = true;
-    const DEFAULT_NAME = "Exchange name";
+    const DEFAULT_NAME = "rabbitmq.exchange";
     const DEFAULT_TYPE = "fanout";
     const DEFAULT_DURABLE = true;
     const DEFAULT_AUTO_DELETED = false;

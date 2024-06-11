@@ -9,9 +9,9 @@ import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
 export function BindingsComponent({ bindings, setBindings }: { bindings: BindingsOptions, setBindings: React.Dispatch<React.SetStateAction<BindingsOptions>>}) {
     const DEFAULT_SHOULD_DISPOSE_BINDING = false;
     const DEFAULT_IS_QUEUE_BINDING = true;
-    const DEFAULT_SENDER_NAME = "Some Exchange";
+    const DEFAULT_SENDER_NAME = "rabbitmq.exchange";
     const DEFAULT_ROUTING_KEY = "/";
-    const DEFAULT_RECEIVER_NAME = "Probably your stream name or some another exchange";
+    const DEFAULT_RECEIVER_NAME = "rabbitmq.stream";
     const DEFAULT_NO_WAIT = false;
 
     const addBinding = () => {

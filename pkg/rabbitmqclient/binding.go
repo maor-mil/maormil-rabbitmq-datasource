@@ -7,8 +7,8 @@ import (
 )
 
 type Binding interface {
-	CreateBinding(*RabbitMQStreamOptions) error
-	DisposeBinding(*RabbitMQStreamOptions) error
+	CreateBinding(*amqp.Channel) error
+	DisposeBinding(*amqp.Channel) error
 }
 
 type BindingOptions struct {
@@ -20,19 +20,8 @@ type BindingOptions struct {
 	ShouldDisposeBinding bool   `json:"shouldDisposeBinding"`
 }
 
-func (bindingOptions *BindingOptions) CreateBinding(options *RabbitMQStreamOptions) error {
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to connect to RabbitMQ: %s", options.Host))
-	}
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to open a channel in RabbitMQ: %s", options.Host))
-	}
-	defer ch.Close()
-
+func (bindingOptions *BindingOptions) CreateBinding(ch *amqp.Channel) error {
+	var err error = nil
 	receiverType := "Queue"
 	if bindingOptions.IsQueueBinding {
 		err = ch.QueueBind(
@@ -63,23 +52,11 @@ func (bindingOptions *BindingOptions) CreateBinding(options *RabbitMQStreamOptio
 	)
 }
 
-func (bindingOptions *BindingOptions) DisposeBinding(options *RabbitMQStreamOptions) error {
+func (bindingOptions *BindingOptions) DisposeBinding(ch *amqp.Channel) error {
 	if !bindingOptions.ShouldDisposeBinding {
 		return nil
 	}
-
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to connect to RabbitMQ: %s", options.Host))
-	}
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to open a channel in RabbitMQ: %s", options.Host))
-	}
-	defer ch.Close()
-
+	var err error = nil
 	receiverType := "Queue"
 	if bindingOptions.IsQueueBinding {
 		err = ch.QueueUnbind(

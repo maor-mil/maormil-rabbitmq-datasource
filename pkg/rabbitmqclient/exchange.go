@@ -7,8 +7,8 @@ import (
 )
 
 type Exchange interface {
-	CreateExchange(*RabbitMQStreamOptions) error
-	DisposeExchange(*RabbitMQStreamOptions) error
+	CreateExchange(*amqp.Channel) error
+	DisposeExchange(*amqp.Channel) error
 }
 
 type ExchangeOptions struct {
@@ -22,20 +22,8 @@ type ExchangeOptions struct {
 	DisposeIfUnused       bool   `json:"disposeIfUnused"`
 }
 
-func (exchangeOptions *ExchangeOptions) CreateExchange(options *RabbitMQStreamOptions) error {
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to connect to RabbitMQ: %s", options.Host))
-	}
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to open a channel in RabbitMQ: %s", options.Host))
-	}
-	defer ch.Close()
-
-	err = ch.ExchangeDeclare(
+func (exchangeOptions *ExchangeOptions) CreateExchange(ch *amqp.Channel) error {
+	err := ch.ExchangeDeclare(
 		exchangeOptions.Name,
 		exchangeOptions.Type,
 		exchangeOptions.Durable,
@@ -47,24 +35,11 @@ func (exchangeOptions *ExchangeOptions) CreateExchange(options *RabbitMQStreamOp
 	return failOnError(err, fmt.Sprintf("Failed to create the exchange %s", exchangeOptions.Name))
 }
 
-func (exchangeOptions *ExchangeOptions) DisposeExchange(options *RabbitMQStreamOptions) error {
+func (exchangeOptions *ExchangeOptions) DisposeExchange(ch *amqp.Channel) error {
 	if !exchangeOptions.ShouldDisposeExchange {
 		return nil
 	}
-
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to connect to RabbitMQ: %s", options.Host))
-	}
-	defer conn.Close()
-
-	ch, err := conn.Channel()
-	if err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to open a channel in RabbitMQ: %s", options.Host))
-	}
-	defer ch.Close()
-
-	err = ch.ExchangeDelete(
+	err := ch.ExchangeDelete(
 		exchangeOptions.Name,
 		exchangeOptions.DisposeIfUnused,
 		exchangeOptions.NoWait,
