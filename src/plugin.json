@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "datasource",
   "name": "Rabbitmq",
-  "id": "maor2475-rabbitmq-datasource",
+  "id": "maormil-rabbitmq-datasource",
   "metrics": true,
   "backend": true,
   "executable": "gpx_rabbitmq",
@@ -10,7 +10,7 @@
   "info": {
     "description": "Rabbitmq streaming datasource plugin",
     "author": {
-      "name": "maor2475"
+      "name": "maormil"
     },
     "keywords": ["datasource"],
     "logos": {

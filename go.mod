@@ -1,4 +1,4 @@
-module github.com/maor2475/rabbitmq-datasource
+module github.com/maormil/rabbitmq-datasource
 
 go 1.21
 

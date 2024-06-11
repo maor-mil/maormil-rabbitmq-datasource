@@ -2,7 +2,7 @@
 
 The RabbitMQ Streaming Datasource plugin for realtime data updates in [Grafana](https://grafana.com) Dashboards.
 
-![Demo With Two RabbitMQs](https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/demo_with_two_rabbitmqs.gif?raw=true)
+![Demo With Two RabbitMQs](https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/demo_with_two_rabbitmqs.gif?raw=true)
 
 ## What is RabbitMQ Stream?
 If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resources to read from about it:
@@ -27,25 +27,25 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 Use the grafana-cli tool to install the plugin from the commandline:
 
 ```bash
-grafana-cli plugins install maor2475-rabbitmq-datasource
+grafana-cli plugins install maormil-rabbitmq-datasource
 ```
 
 The plugin will be installed into your grafana plugins directory; the default is `/var/lib/grafana/plugins`. [More information on the cli tool](https://grafana.com/docs/grafana/latest/administration/cli/#plugins-commands).
 
 #### Installation via zip file
 
-Alternatively, you can manually download the [latest](https://github.com/maor-mil/maor2475-rabbitmq-datasource/releases/latest) release .zip file and unpack it into your grafana plugins directory; the default is `/var/lib/grafana/plugins`.
+Alternatively, you can manually download the [latest](https://github.com/maor-mil/maormil-rabbitmq-datasource/releases/latest) release .zip file and unpack it into your grafana plugins directory; the default is `/var/lib/grafana/plugins`.
 
 
 ### Configuration Editor - Configure your RabbitMQ Stream
-![New RabbitMQ Datasource](https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_datasource.png?raw=true)
+![New RabbitMQ Datasource](https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_datasource.png?raw=true)
 
 [Add a data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) by filling in the following fields (**TIP**: if you are not sure some field means just leave it with the default value).
 
 #### Connection
 Basic connection section to connect the RabbitMQ.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/connection_section.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/connection_section.png?raw=true"
  alt="Connection Section" width="400"/>
 
 | Field         | Type     | Is Required  | Default Value  | Description                                 |
@@ -59,7 +59,7 @@ Basic connection section to connect the RabbitMQ.
 #### Authentication
 Basic authentication section to connect the RabbitMQ.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/authentication_section.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/authentication_section.png?raw=true"
  alt="Authentication Section" width="400"/>
 
 | Field            | Type     | Is Required | Default Value | Description                                      |
@@ -73,7 +73,7 @@ Basic authentication section to connect the RabbitMQ.
 Stream decleration settings section, where you define the settings of your wanted
 RabbitMQ stream and the settings of its consumer.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/stream_settings_section.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/stream_settings_section.png?raw=true"
  alt="Stream Settings Section" width="400"/>
 
 | Field                    | Type     | Is Required | Default Value       | Description                                               |
@@ -93,7 +93,7 @@ Optional Section.
 Array section for multiple exchanges that should be created in the RabbitMQ (they will also be recreated in case of connection lost to the RabbitMQ / Stream deletion in the RabbitMQ).
 If the exchange already exists in the RabbitMQ, the plugin will not recreate the exchange but if the same exchange name already exists in the RabbitMQ with different settings that you gave, you might encounter some problems creating the RabbitMQ Datasource connections.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/exchanges_section.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/exchanges_section.png?raw=true"
  alt="Exchanges Section" width="400"/>
 
 | Field                     | Type     | Is Required | Default Value              | Description                                                          |
@@ -114,7 +114,7 @@ Array section for multiple bindings that should be created in the RabbitMQ (they
 If the binding already exists in the RabbitMQ, the plugin will not recreate the binding.
 There is a support of binding of exchange to queue (or a stream) type of binding AND binding of exchange to exchange.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/bindings_section.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/bindings_section.png?raw=true"
  alt="Bindings Section" width="400"/>
 
 | Field                    | Type     | Is Required | Default Value                                          | Description                                              |
@@ -128,7 +128,7 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 ---
 
 ## Query Editor
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_query_editor.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_query_editor.png?raw=true"
  alt="Bindings Section" width="300"/>
 
 Please pay attention that there is no real query editor in the RabbitMQ plugin.
@@ -160,7 +160,7 @@ If the consumer was already created, the stream, exchanges and bindings will be 
    * There is no RabbitMQ up with the given `<ip/hostname>`.
    * Wrong `Stream Port`.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/known_errors/connection_refused.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/known_errors/connection_refused.png?raw=true"
  alt="Exchanges Section" width="400" height="40"/>
 
 * `timeout 10000 ms - waiting Code, operation: commandPeerProperties`
@@ -168,7 +168,7 @@ If the consumer was already created, the stream, exchanges and bindings will be 
     * Wrong `AMQP Port`.
     * Wrong `VHost`.
 
-<img src="https://github.com/maor-mil/maor2475-rabbitmq-datasource/blob/main/src/screenshots/known_errors/timeout_error.png?raw=true"
+<img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/known_errors/timeout_error.png?raw=true"
  alt="Exchanges Section" width="400" height="40"/>
 
 * There could be more errors, but the rest of them are pretty intuitive.

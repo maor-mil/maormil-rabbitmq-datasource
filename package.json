@@ -1,5 +1,5 @@
 {
-  "name": "maor2475-rabbitmq-datasource",
+  "name": "maormil-rabbitmq-datasource",
   "version": "1.0.0",
   "description": "Rabbitmq streaming datasource plugin",
   "scripts": {
@@ -15,7 +15,7 @@
     "server": "docker-compose up --build",
     "sign": "npx --yes @grafana/sign-plugin@latest"
   },
-  "author": "maor2475",
+  "author": "maormil",
   "license": "Apache-2.0",
   "devDependencies": {
     "@babel/core": "^7.21.4",
