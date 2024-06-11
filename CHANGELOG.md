@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4-unsigned (Unreleased)
+
+* Uupdate exchanges and bindings to use only one connection and channel when created/removed.
+* Change the names of the default exchange and default binding.
+* Change the plugin name from maor2475-rabbitmq-datasource to maormil-rabbitmq-datasource
+
 ## 1.0.3-unsigned (Unreleased)
 
 * Update @grafana/create-plugin frontend dependencies and grafana-plugin-sdk-go backend dependencies.
