@@ -1,10 +1,14 @@
 # Changelog
 
+## 1.0.5-unsigned (Unreleased)
+
+* Update provisioning with default RabbitMQ settings and basic dashboard.
+
 ## 1.0.4-unsigned (Unreleased)
 
-* Uupdate exchanges and bindings to use only one connection and channel when created/removed.
+* Update exchanges and bindings to use only one connection and channel when created/removed.
 * Change the names of the default exchange and default binding.
-* Change the plugin name from maor2475-rabbitmq-datasource to maormil-rabbitmq-datasource
+* Change the plugin name from maor2475-rabbitmq-datasource to maormil-rabbitmq-datasource.
 
 ## 1.0.3-unsigned (Unreleased)
 

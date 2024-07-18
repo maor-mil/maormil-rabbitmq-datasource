@@ -1,10 +1,45 @@
+# Configuration file version
 apiVersion: 1
 
+# List of data sources to delete from the database.
+deleteDatasources:
+  - name: RabbitMQ
+    orgId: 1
+
+# Mark provisioned data sources for deletion if they are no longer in a provisioning file.
+# It takes no effect if data sources are already listed in the deleteDatasources section.
+prune: true
+
+
 datasources:
-  - name: 'rabbitmq'
+  - name: 'RabbitMQ'
     type: 'maormil-rabbitmq-datasource'
     access: proxy
     isDefault: false
-    orgId: 1
     version: 1
     editable: true
+    jsonData:
+      host: localhost
+      amqpPort: 5672
+      streamPort: 5552
+      vHost: "/"
+      tlsConnection: false
+      username: guest
+      streamOptions:
+        shouldDisposeStream: true
+        streamName: rabbitmq.stream
+        consumerName: ''
+        maxAge: 3600000000000
+        maxLengthBytes: 2000000000
+        maxSegmentSizeBytes: 500000000
+        offsetFromStart: true
+        crc: false
+      exchangesOptions: []
+      bindingsOptions: []
+      requestedHeartbeat: 60
+      requestedMaxFrameSize: 1048576
+      writeBuffer: 8192
+      readBuffer: 65536
+      noDelay: false
+    secureJsonData:
+      password: "guest"
