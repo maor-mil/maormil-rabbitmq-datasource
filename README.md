@@ -20,23 +20,6 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
-
-### Add the RabbitMQ Datasource Plugin to your Grafana
-#### Installation via grafana-cli tool
-
-Use the grafana-cli tool to install the plugin from the commandline:
-
-```bash
-grafana-cli plugins install maormil-rabbitmq-datasource
-```
-
-The plugin will be installed into your grafana plugins directory; the default is `/var/lib/grafana/plugins`. [More information on the cli tool](https://grafana.com/docs/grafana/latest/administration/cli/#plugins-commands).
-
-#### Installation via zip file
-
-Alternatively, you can manually download the [latest](https://github.com/maor-mil/maormil-rabbitmq-datasource/releases/latest) release .zip file and unpack it into your grafana plugins directory; the default is `/var/lib/grafana/plugins`.
-
-
 ### Configuration Editor - Configure your RabbitMQ Stream
 ![New RabbitMQ Datasource](https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_datasource.png?raw=true)
 
