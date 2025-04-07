@@ -17,7 +17,11 @@
       "small": "img/rabbitmq_logo.svg",
       "large": "img/rabbitmq_logo.svg"
     },
-    "links": [],
+    "links": [
+      { "name": "License", "url": "https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/LICENSE" },
+      { "name": "raise issue", "url": "https://github.com/maor-mil/maormil-rabbitmq-datasource/issues/new" },
+      { "name": "repository", "url": "https://github.com/maor-mil/maormil-rabbitmq-datasource" }
+    ],
     "screenshots": [
       {
         "name": "New RabbitMQ Datasource",
