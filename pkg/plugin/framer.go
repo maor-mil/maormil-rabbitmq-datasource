@@ -74,7 +74,15 @@ func (df *Framer) Key() string {
 
 func (df *Framer) AddNil() {
 	if idx, ok := df.FieldMap[df.Key()]; ok {
-		df.Fields[idx].Set(0, nil)
+		// Only call Append(nil) for nullable field types. Non-nullable types such as
+		// FieldTypeJSON panic on Append(nil) because the SDK does an internal type
+		// assertion to json.RawMessage which fails for an untyped nil interface value
+		// ("interface conversion: interface {} is nil, not json.RawMessage").
+		// For non-nullable fields we skip the append and let ExtendFields pad with
+		// the type's zero value instead.
+		if df.Fields[idx].Type().Nullable() {
+			df.Fields[idx].Append(nil)
+		}
 		return
 	}
 	log.DefaultLogger.Debug("Nil value for unknown field", "key", df.Key())
@@ -83,8 +91,10 @@ func (df *Framer) AddNil() {
 func (df *Framer) AddValue(fieldType data.FieldType, v interface{}) {
 	if idx, ok := df.FieldMap[df.Key()]; ok {
 		if df.Fields[idx].Type() != fieldType {
-			log.DefaultLogger.Debug("Field type mismatch", "key", df.Key(), "existing", df.Fields[idx], "new", fieldType)
-			return
+			log.DefaultLogger.Debug("Field type changed, replacing field", "key", df.Key(), "old", df.Fields[idx].Type(), "new", fieldType)
+			newField := data.NewFieldFromFieldType(fieldType, 0)
+			newField.Name = df.Key()
+			df.Fields[idx] = newField
 		}
 		df.Fields[idx].Append(v)
 		return

@@ -169,6 +169,11 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 
 	log.DefaultLogger.Debug("Trying to set the RabbitMQ objects...")
 	client.SetStream()
+	// Reset slices before re-populating so that repeated Connect() calls (e.g. on
+	// reconnect) do not accumulate duplicate entries and cause redundant AMQP
+	// declare/bind operations.
+	client.Exchanges = nil
+	client.Bindings = nil
 	client.SetExchanges()
 	client.SetBindings()
 	log.DefaultLogger.Debug("Successfully set the RabbitMQ objects!")
