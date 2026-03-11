@@ -1,6 +1,6 @@
 {
   "name": "maormil-rabbitmq-datasource",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Rabbitmq streaming datasource plugin",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
