@@ -64,9 +64,12 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 		streamOptions.StreamName,
 		messagesHandler,
 		stream.NewConsumerOptions().
-			SetConsumerName(streamOptions.getConsumerName()). // Set a consumer name
-			SetOffset(streamOptions.getOffsetSettings()).     // Start consuming from the beginning
-			SetCRCCheck(streamOptions.Crc),                   // Disabled CRC control increase the performances
+			SetConsumerName(streamOptions.getConsumerName()).
+			SetOffset(streamOptions.getOffsetSettings()).
+			SetCRCCheck(streamOptions.Crc).
+			SetAutoCommit(stream.NewAutoCommitStrategy().
+				SetCountBeforeStorage(50).
+				SetFlushInterval(5*time.Second)),
 	)
 	if err != nil {
 		return nil, failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
@@ -95,10 +98,14 @@ func (streamOptions *StreamOptions) getConsumerName() string {
 func (streamOptions *StreamOptions) closeConsumer() error {
 	if streamOptions.Consumer == nil {
 		return nil
-	} else if err := streamOptions.Consumer.Close(); err != nil {
-		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
-	} else {
-		streamOptions.Consumer = nil
-		return nil
 	}
+	err := streamOptions.Consumer.Close()
+	// Always clear the pointer so Reconnect() can make progress even if Close()
+	// returns AlreadyClosed or another error.  Leaving it non-nil causes
+	// DisposeStream → closeConsumer to loop infinitely inside Reconnect().
+	streamOptions.Consumer = nil
+	if err != nil {
+		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))
+	}
+	return nil
 }
