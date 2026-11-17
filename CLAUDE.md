@@ -12,14 +12,21 @@ query language: everything is configured on the data source.
 
 Data flow for a panel:
 
-1. `QueryData` (`pkg/plugin/query.go`) returns an empty frame whose `meta.channel` is `ds/<datasource uid>/rabbitmq`.
-2. The frontend subscribes to that Live channel → `SubscribeStream` (always OK) → Grafana runs **one** `RunStream`
-   per channel, shared by every panel of that data source.
-3. `RunStream` (`pkg/plugin/stream.go`) creates the stream consumer (`rabbitmqclient`); for each message
+1. `QueryData` (`pkg/plugin/query.go`) parses the panel query (`RabbitMQQuery`: source `datasource` | `stream` |
+   `queue`) into a normalised `rabbitmqclient.Source` and returns an empty frame whose `meta.channel` encodes it
+   (`pkg/plugin/source_path.go`): `ds/<uid>/rabbitmq` for the data source stream (unchanged since 1.x),
+   `ds/<uid>/src/<base64url JSON>` otherwise, or `ref/<hash>` (in-process registry) when that exceeds Live's
+   160-character channel limit. Equal sources → same channel → one shared consumer.
+2. The frontend subscribes to that Live channel → `SubscribeStream` (validates the path) → Grafana runs **one**
+   `RunStream` per channel while it has subscribers.
+3. `RunStream` (`pkg/plugin/stream.go`) dispatches on the source: the data source stream (stream protocol, single
+   named consumer), any other stream (`ConsumeStream`, anonymous consumer on the shared environment) or a queue
+   (`ConsumeQueue` in `pkg/rabbitmqclient/amqp10.go`: its own AMQP 1.0 connection per channel; tap mode declares an
+   exclusive auto-delete queue the broker removes with the connection). For each message
    `Framer.ToFrame` (`pkg/plugin/framer.go`) flattens the JSON object into fields, adds the `RmqMsgConsumedTimestamp`
    time field and calls `sender.SendFrame`.
 4. When the channel has no subscribers left, Grafana Live cancels `RunStream`'s context; `RunStream` then closes
-   the consumer and connection. If the consumer dies (connection loss, stream deleted) `RunStream` closes and
+   only its own consumer (other panels share the connection). If the consumer dies (connection loss, stream deleted) `RunStream` closes and
    **returns an error**, and Grafana re-runs it with backoff — reconnecting is Grafana's job, not a plugin loop.
 
 Instance lifecycle (`pkg/plugin/datasource.go`): `NewRabbitMQInstance` runs on the first request for a data source

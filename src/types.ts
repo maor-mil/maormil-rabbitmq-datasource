@@ -1,7 +1,28 @@
 import { DataSourceJsonData } from '@grafana/data';
 import { DataQuery } from '@grafana/schema';
 
-export interface RabbitMQQuery extends DataQuery { }
+/**
+ * What a panel streams:
+ * - datasource: the stream configured on the data source (default; the only option before 2.0)
+ * - stream: any existing stream, read with the stream protocol (RabbitMQ 3.9+)
+ * - queue: classic/quorum queues over AMQP 1.0 (RabbitMQ 4.0+)
+ */
+export type SourceType = 'datasource' | 'stream' | 'queue';
+export type StreamOffset = 'first' | 'last' | 'next';
+/** tap: a temporary queue bound to an exchange receives copies; existing: consume (and remove) messages of a queue. */
+export type QueueMode = 'tap' | 'existing';
+
+export interface RabbitMQQuery extends DataQuery {
+  source?: SourceType;
+  /** source=stream */
+  stream?: string;
+  offset?: StreamOffset;
+  /** source=queue */
+  queueMode?: QueueMode;
+  exchange?: string;
+  routingKey?: string;
+  queue?: string;
+}
 
 export interface StreamOptions {
   streamName: string;
