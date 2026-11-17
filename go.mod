@@ -3,9 +3,11 @@ module github.com/maormil/rabbitmq-datasource
 go 1.26.5
 
 require (
+	github.com/Azure/go-amqp v1.7.0
 	github.com/grafana/grafana-plugin-sdk-go v0.299.0
 	github.com/json-iterator/go v1.1.12
 	github.com/rabbitmq/amqp091-go v1.16.0
+	github.com/rabbitmq/rabbitmq-amqp-go-client v1.6.0
 	github.com/rabbitmq/rabbitmq-stream-go-client v1.10.0
 )
 
@@ -30,6 +32,7 @@ require (
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grafana/otel-profiling-go v0.7.0 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.12 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.1 // indirect

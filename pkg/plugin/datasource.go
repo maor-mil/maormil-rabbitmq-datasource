@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"encoding/json"
+	"sync"
 
 	"github.com/maormil/rabbitmq-datasource/pkg/rabbitmqclient"
 
@@ -46,6 +47,8 @@ func NewRabbitMQInstance(ctx context.Context, s backend.DataSourceInstanceSettin
 
 type RabbitMQDatasource struct {
 	Client rabbitmqclient.Client
+	// sources resolves "ref/<hash>" channel paths of sources too long to encode in the channel itself.
+	sources sync.Map
 }
 
 func NewRabbitMQDatasource(client rabbitmqclient.Client) *RabbitMQDatasource {

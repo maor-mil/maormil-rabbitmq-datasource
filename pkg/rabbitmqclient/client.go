@@ -1,6 +1,7 @@
 package rabbitmqclient
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"sync"
@@ -17,11 +18,18 @@ import (
 // anything in RabbitMQ: Close only releases the consumer and the connections.
 type Client interface {
 	IsConnected() bool
-	// Connect opens the stream connection and (re-)declares the configured topology. Declaring is
+	// Connect opens the stream connection if needed and (re-)declares the configured topology. Declaring is
 	// idempotent, so calling Connect again recreates a stream that was deleted in RabbitMQ.
 	Connect() (Client, error)
+	// Consume starts the (single) consumer of the data source's own stream.
 	Consume(stream.MessagesHandler) (*stream.Consumer, error)
-	// Close closes the consumer and the connection. It never deletes streams, exchanges or bindings.
+	// CloseConsumer closes the consumer of the data source's own stream, keeping the connection for others.
+	CloseConsumer()
+	// ConsumeStream starts an additional consumer on any existing stream; the caller closes it.
+	ConsumeStream(name string, offset Offset, handler stream.MessagesHandler) (*stream.Consumer, error)
+	// ConsumeQueue consumes a classic/quorum queue over AMQP 1.0 until ctx is done.
+	ConsumeQueue(ctx context.Context, source Source, handle func(body []byte)) error
+	// Close closes every consumer and the connection. It never deletes streams, exchanges or bindings.
 	Close()
 	ToString() string
 }
@@ -174,33 +182,33 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
 
-	// Never leak a previous connection.
-	client.close()
+	if !client.isConnected() {
+		// Drop leftovers of a broken connection before opening a new one.
+		client.close()
 
-	if err := validateSASLMechanism(client.RabbitMQOptions.SASLMechanism); err != nil {
-		return client, err
-	}
-	tlsConfig, err := buildTLSConfig(client.RabbitMQOptions)
-	if err != nil {
-		return client, err
-	}
-	client.tlsConfig = tlsConfig
+		if err := validateSASLMechanism(client.RabbitMQOptions.SASLMechanism); err != nil {
+			return client, err
+		}
+		tlsConfig, err := buildTLSConfig(client.RabbitMQOptions)
+		if err != nil {
+			return client, err
+		}
+		client.tlsConfig = tlsConfig
 
-	log.DefaultLogger.Debug("Trying to set the RabbitMQ environment...")
-	if _, err := client.SetEnv(); err != nil {
-		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment", "error", err)
-		client.Env = nil
-		return client, err
+		log.DefaultLogger.Debug("Trying to set the RabbitMQ environment...")
+		if _, err := client.SetEnv(); err != nil {
+			log.DefaultLogger.Error("Couldn't set the RabbitMQ environment", "error", err)
+			client.Env = nil
+			return client, err
+		}
+		log.DefaultLogger.Debug("Successfully set the RabbitMQ environment!")
 	}
-	log.DefaultLogger.Debug("Successfully set the RabbitMQ environment!")
 
 	client.SetStream()
 	client.SetExchanges()
 	client.SetBindings()
 
-	// Only report "connected" once the topology is in place.
 	if err := client.declareTopology(); err != nil {
-		client.close()
 		return client, err
 	}
 	log.DefaultLogger.Debug("Successfully declared the RabbitMQ objects!")
@@ -242,6 +250,39 @@ func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandle
 		return nil, fmt.Errorf("not connected to RabbitMQ")
 	}
 	return client.Stream.Consume(client.Env, messageHandler)
+}
+
+func (client *RabbitMQStreamClient) CloseConsumer() {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	if client.Stream != nil {
+		if err := client.Stream.CloseConsumer(); err != nil {
+			log.DefaultLogger.Debug("Closing the consumer failed", "RabbitMQ Stream", client.ToString(), "error", err)
+		}
+	}
+}
+
+func (client *RabbitMQStreamClient) ConsumeStream(name string, offset Offset, handler stream.MessagesHandler) (*stream.Consumer, error) {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	if !client.isConnected() {
+		return nil, fmt.Errorf("not connected to RabbitMQ")
+	}
+	// Anonymous (unnamed) consumer: several panels may read the same stream, and no offset is stored.
+	return client.Env.NewConsumer(name, handler, stream.NewConsumerOptions().
+		SetOffset(offsetSpecification(offset)).
+		SetCRCCheck(client.RabbitMQOptions.StreamOptions.Crc))
+}
+
+func offsetSpecification(offset Offset) stream.OffsetSpecification {
+	switch offset {
+	case OffsetLast:
+		return stream.OffsetSpecification{}.Last()
+	case OffsetNext:
+		return stream.OffsetSpecification{}.Next()
+	default:
+		return stream.OffsetSpecification{}.First()
+	}
 }
 
 func (client *RabbitMQStreamClient) Close() {
