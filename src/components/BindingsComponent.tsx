@@ -41,7 +41,7 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
     <>
         {
         bindings.map((value, index) => (
-            <>
+            <React.Fragment key={index}>
                 <InlineField label="Should Dispose Binding" labelWidth={LABEL_WIDTH} tooltip="Should unbind when the RabbitMQ datasource is deleted">
                     <InlineSwitch
                         onChange={ event => updatebindingProperty(index, 'shouldDisposeBinding', event.currentTarget.checked)}
@@ -85,7 +85,7 @@ export function BindingsComponent({ bindings, setBindings }: { bindings: Binding
                     />
                 </InlineField>
                 <Button variant="secondary" fill="text" icon="minus" onClick={() => removebinding(index)} tooltip="Remove" aria-label="Remove" />
-            </>
+            </React.Fragment>
             ))
         }
         <Button variant="secondary" fill="text" icon="plus" onClick={addBinding} tooltip="Add" aria-label="Add" />

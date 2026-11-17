@@ -1,0 +1,3 @@
+# Files executed or parsed inside Linux containers must keep LF line endings.
+*.sh text eol=lf
+docker/** text eol=lf

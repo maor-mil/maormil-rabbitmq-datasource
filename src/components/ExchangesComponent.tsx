@@ -64,7 +64,7 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
     <>
         {
         exchanges.map((value, index) => (
-            <>
+            <React.Fragment key={index}>
                 <InlineField label="Should Dispose Exchange" labelWidth={LABEL_WIDTH} tooltip="Should delete this exchange when the RabbitMQ datasource is deleted">
                     <InlineSwitch
                         onChange={ event => updateExchangeProperty(index, 'shouldDisposeExchange', event.currentTarget.checked)}
@@ -118,7 +118,7 @@ export function ExchangesComponent({ exchanges, setExchanges }: { exchanges: Exc
                     />
                 </InlineField>
                 <Button variant="secondary" fill="text" icon="minus" onClick={() => removeExchange(index)} tooltip="Remove" aria-label="Remove" />
-            </>
+            </React.Fragment>
             ))
         }
         <Button variant="secondary" fill="text" icon="plus" onClick={addExchange} tooltip="Add" aria-label="Add" />

@@ -1,18 +1,28 @@
-version: '3.0'
-
 services:
   grafana:
-    container_name: 'maormil-rabbitmq-datasource'
-    platform: 'linux/amd64'
+    extends:
+      file: .config/docker-compose-base.yaml
+      service: grafana
     build:
-      context: ./.config
       args:
-        grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
-        grafana_version: ${GRAFANA_VERSION:-9.4.3}
-    environment:
-      - GF_LOG_LEVEL=INFO
+        grafana_version: ${GRAFANA_VERSION:-13.2.4}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # Local RabbitMQ broker used for development and by the E2E tests.
+  # Management UI: http://localhost:15672 (guest/guest)
+  rabbitmq:
+    image: rabbitmq:${RABBITMQ_VERSION:-4.2}-management
+    container_name: 'maormil-rabbitmq-datasource-rabbitmq'
     ports:
-      - 3000:3000/tcp
+      - 5672:5672/tcp # AMQP 0.9.1 / AMQP 1.0
+      - 5552:5552/tcp # Stream protocol
+      - 15672:15672/tcp # Management UI + HTTP API
     volumes:
-      - ./dist:/var/lib/grafana/plugins/maormil-rabbitmq-datasource
-      - ./provisioning:/etc/grafana/provisioning
+      - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_port_listener', '5552']
+      interval: 5s
+      timeout: 10s
+      retries: 30
