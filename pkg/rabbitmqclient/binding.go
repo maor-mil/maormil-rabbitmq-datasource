@@ -66,7 +66,7 @@ func (bindingOptions *BindingOptions) DisposeBinding(ch *amqp.Channel) error {
 			nil, // arguments - not supported at the moment
 		)
 	} else {
-		err = ch.ExchangeBind(
+		err = ch.ExchangeUnbind(
 			bindingOptions.ReceiverName,
 			bindingOptions.RoutingKey,
 			bindingOptions.SenderName,
