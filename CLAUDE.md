@@ -18,17 +18,24 @@ Data flow for a panel:
 3. `RunStream` (`pkg/plugin/stream.go`) creates the stream consumer (`rabbitmqclient`); for each message
    `Framer.ToFrame` (`pkg/plugin/framer.go`) flattens the JSON object into fields, adds the `RmqMsgConsumedTimestamp`
    time field and calls `sender.SendFrame`.
-4. When the channel has no subscribers left, Grafana Live cancels `RunStream`'s context.
+4. When the channel has no subscribers left, Grafana Live cancels `RunStream`'s context; `RunStream` then closes
+   the consumer and connection. If the consumer dies (connection loss, stream deleted) `RunStream` closes and
+   **returns an error**, and Grafana re-runs it with backoff — reconnecting is Grafana's job, not a plugin loop.
 
 Instance lifecycle (`pkg/plugin/datasource.go`): `NewRabbitMQInstance` runs on the first request for a data source
 (and again after **every settings save** — instancemgmt then calls `Dispose()` on the old instance; there is no
-"data source deleted" hook). It parses settings (`getDatasourceSettings`) and `Connect()`s: declares exchanges → the
-stream → bindings over a short-lived AMQP 0.9.1 connection, and keeps a stream-protocol `Environment`.
+"data source deleted" hook). It parses settings (`getDatasourceSettings`) and tries to `Connect()` (a failure is only
+logged; `CheckHealth` reconnects and reports the error). `Connect()` declares exchanges → the stream → bindings over
+a short-lived AMQP 0.9.1 connection and keeps a stream-protocol `Environment`; declaring is idempotent, so it also
+recreates a stream deleted in RabbitMQ.
+
+**The plugin never deletes anything in RabbitMQ** (streams, exchanges, bindings): `Client.Close()` only releases the
+consumer and connections. Don't add deletion to stop/dispose paths — they run on dashboard close and settings save.
 
 | Path | What |
 |---|---|
 | `pkg/plugin/` | SDK handlers: datasource (instance), query, stream (Live), health, framer |
-| `pkg/rabbitmqclient/` | `client.go` (Environment + topology), `stream.go` (declare/consume/dispose), `exchange.go`, `binding.go`, `defaults.go` |
+| `pkg/rabbitmqclient/` | `client.go` (connect/declare/close, mutex-guarded), `stream.go` (declare/consume), `exchange.go`, `binding.go`, `defaults.go` |
 | `src/` | `components/ConfigEditor.tsx` (all settings), `QueryEditor.tsx` (stub), `types.ts`, `components/defaults.ts` |
 | `tests/` | Playwright E2E suite (see below) |
 | `provisioning/` | Data source + dashboard loaded by the dev/E2E Grafana |
@@ -50,7 +57,8 @@ Gotchas:
 - The backend applies defaults to missing fields (unmarshal into pre-filled structs). Grafana 13 drops
   `onOptionsChange` calls made while the config page initialises, so the editor must never rely on persisting
   defaults on mount; every change writes the **complete** `jsonData` in a **single** `onOptionsChange`.
-- Go json matching is case-insensitive (e.g. tag `ShouldDisposeStream` matches `shouldDisposeStream`).
+- Go json matching is case-insensitive; unknown keys are ignored (old saved settings may still contain the removed
+  `shouldDispose*` keys — the editor strips them on save).
 - Units: `requestedHeartbeat` is seconds, `maxAge` is nanoseconds.
 
 ## Commands
@@ -62,6 +70,7 @@ Prerequisites: Node 24 (`.nvmrc`), Go from `go.mod` (the toolchain downloads it)
 | Install / build frontend | `npm install`, `npm run dev` (watch) or `npm run build` |
 | Build backend for the container | `mage -v build:linux` → `dist/gpx_rabbitmq_linux_amd64` (all platforms: `mage -v buildAll`) |
 | Checks | `npm run typecheck && npm run lint && npm run test:ci`; `go test ./pkg/...` or `mage coverage` |
+| Go integration tests (real broker) | `docker compose up -d --wait rabbitmq && go test -tags integration ./pkg/...` |
 | Go lint (same as CI) | `docker run --rm -v "$PWD:/app" -w /app golangci/golangci-lint:latest golangci-lint run ./...` |
 | Run Grafana + RabbitMQ | `npm run server` → Grafana http://localhost:3000 (anonymous admin), RabbitMQ UI http://localhost:15672 (guest/guest) |
 | After rebuilding the backend | `docker compose restart grafana` (frontend changes only need a browser reload) |

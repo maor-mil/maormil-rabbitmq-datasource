@@ -44,7 +44,7 @@ test.describe('config editor', () => {
     await textbox(page, 'Stream Port').fill('5553');
 
     await expect(configPage.saveAndTest()).not.toBeOK();
-    await expect(configPage).toHaveAlert('error');
+    await expect(configPage).toHaveAlert('error', { hasText: 'Cannot connect to RabbitMQ' });
   });
 
   test('"Save & test" fails when the credentials are wrong', async ({ createDataSourceConfigPage, page }) => {
@@ -53,6 +53,6 @@ test.describe('config editor', () => {
     await textbox(page, 'Username').fill('no-such-user');
 
     await expect(configPage.saveAndTest()).not.toBeOK();
-    await expect(configPage).toHaveAlert('error');
+    await expect(configPage).toHaveAlert('error', { hasText: 'Cannot connect to RabbitMQ' });
   });
 });

@@ -4,7 +4,6 @@ import { DataQuery } from '@grafana/schema';
 export interface RabbitMQQuery extends DataQuery { }
 
 export interface StreamOptions {
-  shouldDisposeStream: boolean;
   streamName: string;
   consumerName: string;
   offsetFromStart: boolean;
@@ -36,8 +35,6 @@ export interface RabbitMQDataSourceOptions extends DataSourceJsonData {
 }
 
 export interface ExchangeOptions {
-  shouldDisposeExchange: boolean;
-  disposeIfUnused: boolean;
   name: string;
   type: string;
   durable: boolean;
@@ -49,7 +46,6 @@ export interface ExchangeOptions {
 export interface ExchangesOptions extends Array<ExchangeOptions> {}
 
 export interface BindingOptions {
-  shouldDisposeBinding: boolean;
   isQueueBinding: boolean;
   senderName: string;
   routingKey: string;

@@ -5,6 +5,18 @@
 ### Breaking changes
 
 * Minimum supported Grafana version is now **13.2.0** (was 9.4.3).
+* The plugin **no longer deletes anything in RabbitMQ**. The `Should Dispose Stream`, `Should Dispose Exchange`, `Dispose if Unused` and `Should Dispose Binding` settings were removed (old saved values are ignored). They deleted the stream (with its stored messages), exchanges and bindings whenever the last panel was closed, and broke reconnecting after a stream was deleted in RabbitMQ.
+
+### Fixed
+
+* A `null` value after a non-null value crashed the plugin process (and every RabbitMQ data source with it), repeatedly, since the message was replayed after each restart. (#4, contributed by Henning Paulsen)
+* A field whose JSON type changed between messages silently stopped receiving values. (#4)
+* Streaming never resumed after the connection to RabbitMQ was lost; reconnecting is now driven by Grafana's stream retry with backoff. (#4)
+* A stream deleted in RabbitMQ is recreated (with the configured exchanges and bindings) and streaming resumes, as documented.
+* Reconnecting no longer duplicates the configured exchanges and bindings. (#4)
+* A failure to create the consumer no longer panics (nil consumer). (#4)
+* "Save & test" now shows the actual RabbitMQ connection error and reconnects an idle data source instead of reporting "RabbitMQ Disconnected".
+* Messages are no longer dropped when panels cannot keep up (back-pressure instead of a full buffer); bodies sent as AMQP 1.0 `amqp-value` (binary or string) are supported.
 
 ### Added
 

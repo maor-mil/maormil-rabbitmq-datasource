@@ -49,8 +49,6 @@ test.describe('streaming', () => {
             autoDeleted: false,
             internal: false,
             noWait: false,
-            shouldDisposeExchange: true,
-            disposeIfUnused: true,
           },
         ],
         bindingsOptions: [
@@ -60,7 +58,6 @@ test.describe('streaming', () => {
             receiverName: streamName,
             isQueueBinding: true,
             noWait: false,
-            shouldDisposeBinding: true,
           },
         ],
       }),

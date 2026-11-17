@@ -6,13 +6,8 @@ import { test } from './fixtures';
  * at which point remove the corresponding `expectKnownBug(...)` call.
  */
 export const KNOWN_BUGS = {
-  streamNotRecreated:
-    'The stream is never recreated after it is deleted in RabbitMQ (contradicts the README): Dispose() tries to ' +
-    'delete the already-deleted stream, gives up before closing the stream environment, so Connect() never runs again.',
-  dashboardCloseDeletesStream:
-    'RunStream calls Dispose() when Grafana Live stops the stream, so simply closing the dashboard deletes the stream ' +
-    '(and its stored messages), exchanges and bindings when disposal is enabled (the default).',
-} as const;
+  // No open bugs are currently reproduced by the suite. Add entries as `key: 'description'`.
+} as const satisfies Record<string, string>;
 
 /** Marks the current test as an expected failure caused by a known bug. */
 export function expectKnownBug(description: string): void {
