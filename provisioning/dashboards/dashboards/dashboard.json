@@ -31,7 +31,7 @@
       {
         "datasource": {
           "type": "maormil-rabbitmq-datasource",
-          "uid": "P694032B7EDE90D08"
+          "uid": "rabbitmq"
         },
         "fieldConfig": {
           "defaults": {
@@ -108,7 +108,7 @@
           {
             "datasource": {
               "type": "maormil-rabbitmq-datasource",
-              "uid": "P694032B7EDE90D08"
+              "uid": "rabbitmq"
             },
             "refId": "A"
           }
