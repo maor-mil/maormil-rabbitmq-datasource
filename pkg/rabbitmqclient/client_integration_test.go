@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -177,5 +178,63 @@ func TestConnectRecreatesAStreamThatWasDeletedInRabbitMQ(t *testing.T) {
 	}
 	if _, err := client.Consume(func(stream.ConsumerContext, *streamamqp.Message) {}); err != nil {
 		t.Fatalf("Consume after recreating the stream: %v", err)
+	}
+}
+
+func management(t *testing.T, method, path string, body any) {
+	t.Helper()
+	var reader *strings.Reader
+	if body != nil {
+		encoded, _ := json.Marshal(body)
+		reader = strings.NewReader(string(encoded))
+	} else {
+		reader = strings.NewReader("")
+	}
+	req, _ := http.NewRequest(method, fmt.Sprintf("http://%s:15672%s", brokerHost(), path), reader)
+	req.SetBasicAuth("guest", "guest")
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("management API %s %s: %v", method, path, err)
+	}
+	defer closeAndLog("response body", res.Body)
+	if res.StatusCode >= 300 && !(method == http.MethodDelete && res.StatusCode == http.StatusNotFound) {
+		t.Fatalf("management API %s %s: HTTP %d", method, path, res.StatusCode)
+	}
+}
+
+// Issue #3: credentials and vhosts with URI delimiters must work for the AMQP topology connection and for
+// every stream connection (locator and consumer).
+func TestConnectWithSpecialCharactersInCredentialsAndVhost(t *testing.T) {
+	for _, vhost := range []string{"/", "it vhost/#?"} {
+		t.Run(vhost, func(t *testing.T) {
+			user := fmt.Sprintf("it-user:@/#?-%d", rand.Int63())
+			password := `@:/#?%&= p"ä`
+			if vhost != "/" {
+				management(t, http.MethodPut, "/api/vhosts/"+url.PathEscape(vhost), map[string]any{})
+				t.Cleanup(func() { management(t, http.MethodDelete, "/api/vhosts/"+url.PathEscape(vhost), nil) })
+			}
+			management(t, http.MethodPut, "/api/users/"+url.PathEscape(user), map[string]any{"password": password, "tags": ""})
+			t.Cleanup(func() { management(t, http.MethodDelete, "/api/users/"+url.PathEscape(user), nil) })
+			management(t, http.MethodPut, "/api/permissions/"+url.PathEscape(vhost)+"/"+url.PathEscape(user),
+				map[string]any{"configure": ".*", "write": ".*", "read": ".*"})
+
+			opts := NewRabbitMQStreamOptions()
+			opts.Host, opts.User, opts.Password, opts.VHost = brokerHost(), user, password, vhost
+			opts.StreamOptions.StreamName = uniqueName(t, "stream")
+			client := NewRabbitMQStreamClient().SetRabbitMQOptions(opts)
+			if _, err := client.Connect(); err != nil {
+				t.Fatalf("Connect: %v", err)
+			}
+			defer client.Close()
+			if _, err := client.Consume(func(stream.ConsumerContext, *streamamqp.Message) {}); err != nil {
+				t.Fatalf("Consume (separate consumer connection): %v", err)
+			}
+			if vhost == "/" {
+				t.Cleanup(func() {
+					management(t, http.MethodDelete, "/api/queues/%2F/"+url.PathEscape(opts.StreamOptions.StreamName), nil)
+				})
+			}
+		})
 	}
 }

@@ -38,6 +38,33 @@ test.describe('config editor', () => {
     }
   });
 
+  // https://github.com/maor-mil/maormil-rabbitmq-datasource/issues/3
+  test('"Save & test" succeeds with URI delimiters in the username and password', async ({
+    createDataSourceConfigPage,
+    page,
+    rabbitmq,
+  }) => {
+    const username = `e2e:@/#?-${uniqueId('user')}`;
+    const password = '@:/#?%&= p"ä';
+    const streamName = `${uniqueId()}.stream`;
+    await rabbitmq.createUser(username, password);
+
+    try {
+      const configPage = await createDataSourceConfigPage({ type: DS_TYPE });
+      await textbox(page, 'Host').fill(RABBITMQ_HOST_FROM_GRAFANA);
+      await textbox(page, 'Username').fill(username);
+      await page.getByLabel('Password', { exact: true }).fill(password);
+      await textbox(page, 'Stream Name').fill(streamName);
+
+      await expect(configPage.saveAndTest()).toBeOK();
+      await expect(configPage).toHaveAlert('success', { hasText: 'RabbitMQ Connected' });
+      await expect.poll(() => rabbitmq.queueType(streamName)).toBe('stream');
+    } finally {
+      await rabbitmq.deleteQueue(streamName);
+      await rabbitmq.deleteUser(username);
+    }
+  });
+
   test('"Save & test" fails when the broker cannot be reached', async ({ createDataSourceConfigPage, page }) => {
     const configPage = await createDataSourceConfigPage({ type: DS_TYPE });
     await textbox(page, 'Host').fill(RABBITMQ_HOST_FROM_GRAFANA);

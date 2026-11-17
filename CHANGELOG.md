@@ -9,6 +9,7 @@
 
 ### Fixed
 
+* Usernames, passwords and vhosts containing URI delimiters (`@ : / # ? % & =` ...) broke the connection with errors such as `dial tcp: missing address`, and the resulting error message contained the password in plain text. Both the AMQP 0.9.1 and the stream connections now handle any character (#3). Limitation of the stream client: a vhost containing `+` or `%` is still not supported.
 * A `null` value after a non-null value crashed the plugin process (and every RabbitMQ data source with it), repeatedly, since the message was replayed after each restart. (#4, contributed by Henning Paulsen)
 * A field whose JSON type changed between messages silently stopped receiving values. (#4)
 * Streaming never resumed after the connection to RabbitMQ was lost; reconnecting is now driven by Grafana's stream retry with backoff. (#4)

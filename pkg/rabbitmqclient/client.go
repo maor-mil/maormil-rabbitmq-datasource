@@ -65,14 +65,15 @@ func (client *RabbitMQStreamClient) SetRabbitMQOptions(rabbitmqStreamOptions *Ra
 }
 
 func (client *RabbitMQStreamClient) SetEnv() (*RabbitMQStreamClient, error) {
+	user, password, vhost := streamCredentials(client.RabbitMQOptions)
 	// Connect to the broker
 	env, err := stream.NewEnvironment(
 		stream.NewEnvironmentOptions().
 			SetHost(client.RabbitMQOptions.Host).
 			SetPort(client.RabbitMQOptions.StreamPort).
-			SetVHost(client.RabbitMQOptions.VHost).
-			SetUser(client.RabbitMQOptions.User).
-			SetPassword(client.RabbitMQOptions.Password).
+			SetVHost(vhost).
+			SetUser(user).
+			SetPassword(password).
 			IsTLS(client.RabbitMQOptions.IsTLS).
 			//SetTLSConfig(&tls.Config{}). - TLSConfig is not supported at the moment
 			SetRequestedHeartbeat(client.RabbitMQOptions.RequestedHeartbeat * time.Second).
@@ -153,10 +154,7 @@ func closeAndLog(what string, c interface{ Close() error }) {
 }
 
 func (client *RabbitMQStreamClient) createAmqpConnection() (*amqp.Connection, error) {
-	options := client.RabbitMQOptions
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
-	return conn, err
-
+	return amqp.DialConfig(amqpAddress(client.RabbitMQOptions), amqpConfig(client.RabbitMQOptions))
 }
 
 func (client *RabbitMQStreamClient) Connect() (Client, error) {
