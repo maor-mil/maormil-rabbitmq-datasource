@@ -28,10 +28,13 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	defer cancel()
 	push := ds.startSender(ctx, sender)
 
-	switch source.Type {
-	case rabbitmqclient.SourceStream:
+	switch {
+	case source.Type == rabbitmqclient.SourceStream && source.UsesAMQP10():
+		// SQL filter expressions only exist in AMQP 1.0.
+		return ds.Client.ConsumeStreamAMQP10(ctx, source, push)
+	case source.Type == rabbitmqclient.SourceStream:
 		return ds.runStreamSource(ctx, source, push)
-	case rabbitmqclient.SourceQueue:
+	case source.Type == rabbitmqclient.SourceQueue:
 		return ds.Client.ConsumeQueue(ctx, source, push)
 	default:
 		return ds.runDatasourceStream(ctx, push)
@@ -131,7 +134,7 @@ func (ds *RabbitMQDatasource) runStreamSource(ctx context.Context, source rabbit
 	if _, err := ds.Client.Connect(); err != nil {
 		return err
 	}
-	consumer, err := ds.Client.ConsumeStream(source.Stream, source.Offset, ds.streamHandler(push))
+	consumer, err := ds.Client.ConsumeStream(source, ds.streamHandler(push))
 	if err != nil {
 		return fmt.Errorf("reading stream %q failed: %w", source.Stream, err)
 	}

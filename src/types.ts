@@ -17,6 +17,11 @@ export interface RabbitMQQuery extends DataQuery {
   /** source=stream */
   stream?: string;
   offset?: StreamOffset;
+  /** Bloom filter values (RabbitMQ 3.13+); matchUnfiltered also delivers messages published without a value. */
+  filterValues?: string[];
+  matchUnfiltered?: boolean;
+  /** SQL filter expression evaluated by RabbitMQ for every message (RabbitMQ 4.2+, read over AMQP 1.0). */
+  sql?: string;
   /** source=queue */
   queueMode?: QueueMode;
   exchange?: string;

@@ -49,6 +49,8 @@ type RabbitMQDatasource struct {
 	Client rabbitmqclient.Client
 	// sources resolves "ref/<hash>" channel paths of sources too long to encode in the channel itself.
 	sources sync.Map
+	// validFilters caches the SQL stream filters the broker accepted (keyed by the JSON source).
+	validFilters sync.Map
 }
 
 func NewRabbitMQDatasource(client rabbitmqclient.Client) *RabbitMQDatasource {

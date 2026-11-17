@@ -27,9 +27,13 @@ func (c *fakeClient) Consume(stream.MessagesHandler) (*stream.Consumer, error) {
 }
 
 func (c *fakeClient) CloseConsumer() {}
-func (c *fakeClient) ConsumeStream(string, rabbitmqclient.Offset, stream.MessagesHandler) (*stream.Consumer, error) {
+func (c *fakeClient) ConsumeStream(rabbitmqclient.Source, stream.MessagesHandler) (*stream.Consumer, error) {
 	return nil, errors.New("not implemented by the fake")
 }
+func (c *fakeClient) ConsumeStreamAMQP10(context.Context, rabbitmqclient.Source, func([]byte)) error {
+	return errors.New("not implemented by the fake")
+}
+func (c *fakeClient) ValidateStreamFilter(context.Context, rabbitmqclient.Source) error { return nil }
 func (c *fakeClient) ConsumeQueue(context.Context, rabbitmqclient.Source, func([]byte)) error {
 	return errors.New("not implemented by the fake")
 }

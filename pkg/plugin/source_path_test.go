@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"context"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -23,7 +25,7 @@ func pluginContext() backend.PluginContext {
 
 func channelOf(t *testing.T, ds *RabbitMQDatasource, json string) string {
 	t.Helper()
-	res := ds.query(pluginContext(), queryWith(json))
+	res := ds.query(context.Background(), pluginContext(), queryWith(json))
 	if res.Error != nil {
 		t.Fatalf("query %s: %v", json, res.Error)
 	}
@@ -52,7 +54,7 @@ func TestSourcesRoundTripThroughTheChannelPath(t *testing.T) {
 			t.Errorf("invalid Live path %q", path)
 		}
 		got, err := ds.sourceFromPath(path)
-		if err != nil || got != source {
+		if err != nil || !reflect.DeepEqual(got, source) {
 			t.Errorf("round trip of %+v: got %+v, %v", source, got, err)
 		}
 	}
@@ -75,7 +77,7 @@ func TestLongSourcesUseARegistryReference(t *testing.T) {
 		t.Fatalf("unexpected path %q", path)
 	}
 	got, err := ds.sourceFromPath(path)
-	if err != nil || got != source {
+	if err != nil || !reflect.DeepEqual(got, source) {
 		t.Fatalf("resolving %q: %+v, %v", path, got, err)
 	}
 	if _, err := (&RabbitMQDatasource{}).sourceFromPath(path); err != errUnknownSourceRef {
@@ -94,7 +96,7 @@ func TestInvalidQueriesReturnAnError(t *testing.T) {
 		`{"source":"kafka"}`,
 		`{not json`,
 	} {
-		if res := ds.query(pluginContext(), queryWith(q)); res.Error == nil {
+		if res := ds.query(context.Background(), pluginContext(), queryWith(q)); res.Error == nil {
 			t.Errorf("query %s: expected an error", q)
 		}
 	}

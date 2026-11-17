@@ -50,4 +50,22 @@ describe('QueryEditor', () => {
     renderEditor({ source: 'queue', queueMode: 'existing' });
     expect(screen.getByText('Consuming a queue removes its messages')).toBeInTheDocument();
   });
+
+  it('edits Bloom filter values, match unfiltered and the SQL filter of a stream source', () => {
+    const { onChange, onRunQuery } = renderEditor({ source: 'stream', stream: 's', filterValues: ['emea'] });
+    expect(screen.getByText('emea')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Match unfiltered' }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ matchUnfiltered: true }));
+
+    const sql = screen.getByRole('textbox', { name: 'SQL filter' });
+    fireEvent.change(sql, { target: { value: "region = 'EMEA'" } });
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ sql: "region = 'EMEA'" }));
+    fireEvent.blur(sql);
+    expect(onRunQuery).toHaveBeenCalled();
+  });
+
+  it('only offers match unfiltered once there are filter values', () => {
+    renderEditor({ source: 'stream', stream: 's' });
+    expect(screen.queryByRole('switch', { name: 'Match unfiltered' })).not.toBeInTheDocument();
+  });
 });

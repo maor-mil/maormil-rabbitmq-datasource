@@ -9,6 +9,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	amqp "github.com/rabbitmq/amqp091-go"
+	streamamqp "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/amqp"
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
@@ -25,8 +26,13 @@ type Client interface {
 	Consume(stream.MessagesHandler) (*stream.Consumer, error)
 	// CloseConsumer closes the consumer of the data source's own stream, keeping the connection for others.
 	CloseConsumer()
-	// ConsumeStream starts an additional consumer on any existing stream; the caller closes it.
-	ConsumeStream(name string, offset Offset, handler stream.MessagesHandler) (*stream.Consumer, error)
+	// ConsumeStream starts an additional consumer (with the source's Bloom filter, if any) on any existing
+	// stream; the caller closes it.
+	ConsumeStream(source Source, handler stream.MessagesHandler) (*stream.Consumer, error)
+	// ConsumeStreamAMQP10 consumes a stream with an SQL filter over AMQP 1.0 until ctx is done.
+	ConsumeStreamAMQP10(ctx context.Context, source Source, handle func(body []byte)) error
+	// ValidateStreamFilter checks that the broker accepts the source's stream filter.
+	ValidateStreamFilter(ctx context.Context, source Source) error
 	// ConsumeQueue consumes a classic/quorum queue over AMQP 1.0 until ctx is done.
 	ConsumeQueue(ctx context.Context, source Source, handle func(body []byte)) error
 	// Close closes every consumer and the connection. It never deletes streams, exchanges or bindings.
@@ -262,16 +268,45 @@ func (client *RabbitMQStreamClient) CloseConsumer() {
 	}
 }
 
-func (client *RabbitMQStreamClient) ConsumeStream(name string, offset Offset, handler stream.MessagesHandler) (*stream.Consumer, error) {
+func (client *RabbitMQStreamClient) ConsumeStream(source Source, handler stream.MessagesHandler) (*stream.Consumer, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
 	if !client.isConnected() {
 		return nil, fmt.Errorf("not connected to RabbitMQ")
 	}
 	// Anonymous (unnamed) consumer: several panels may read the same stream, and no offset is stored.
-	return client.Env.NewConsumer(name, handler, stream.NewConsumerOptions().
-		SetOffset(offsetSpecification(offset)).
-		SetCRCCheck(client.RabbitMQOptions.StreamOptions.Crc))
+	options := stream.NewConsumerOptions().
+		SetOffset(offsetSpecification(source.Offset)).
+		SetCRCCheck(client.RabbitMQOptions.StreamOptions.Crc)
+	if len(source.FilterValues) > 0 {
+		options = options.SetFilter(stream.NewConsumerFilter(source.FilterValues, source.MatchUnfiltered,
+			bloomPostFilter(source.FilterValues, source.MatchUnfiltered)))
+	}
+	return client.Env.NewConsumer(source.Stream, handler, options)
+}
+
+// FilterValueAnnotation carries a message's filter value for AMQP 0.9.1 / 1.0 publishers.
+const FilterValueAnnotation = "x-stream-filter-value"
+
+// bloomPostFilter completes the broker's Bloom filter, which selects whole chunks and can let other messages
+// through. A message that carries its filter value (FilterValueAnnotation) is checked exactly; one without it
+// is either unfiltered (kept only with matchUnfiltered) or was published with the stream protocol, which
+// does not store the value in the message - such messages cannot be re-checked and are kept.
+func bloomPostFilter(values []string, matchUnfiltered bool) stream.PostFilter {
+	allowed := make(map[string]bool, len(values))
+	for _, v := range values {
+		allowed[v] = true
+	}
+	return func(message *streamamqp.Message) bool {
+		value, ok := message.Annotations[FilterValueAnnotation]
+		if !ok {
+			return true
+		}
+		if s, isString := value.(string); isString {
+			return allowed[s]
+		}
+		return matchUnfiltered
+	}
 }
 
 func offsetSpecification(offset Offset) stream.OffsetSpecification {
