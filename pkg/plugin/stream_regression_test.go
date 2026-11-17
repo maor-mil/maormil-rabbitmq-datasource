@@ -26,6 +26,14 @@ func (c *fakeClient) Consume(stream.MessagesHandler) (*stream.Consumer, error) {
 	return nil, c.consumeErr
 }
 
+func (c *fakeClient) CloseConsumer() {}
+func (c *fakeClient) ConsumeStream(string, rabbitmqclient.Offset, stream.MessagesHandler) (*stream.Consumer, error) {
+	return nil, errors.New("not implemented by the fake")
+}
+func (c *fakeClient) ConsumeQueue(context.Context, rabbitmqclient.Source, func([]byte)) error {
+	return errors.New("not implemented by the fake")
+}
+
 type discardPackets struct{}
 
 func (discardPackets) Send(*backend.StreamPacket) error { return nil }

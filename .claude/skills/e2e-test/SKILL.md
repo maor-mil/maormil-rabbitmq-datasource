@@ -40,6 +40,11 @@ Rules:
 - Stream only through `createStreamingEnv`, never through the provisioned data source.
 - Exchanges/bindings: pass `topology: ({ id, streamName }) => ({ exchangesOptions, bindingsOptions })`; name exchanges
   with the env `id` so the fixture deletes them.
+- Per-panel sources: pass `panels: [{ title, query: { source: 'queue', queueMode: 'tap', exchange, routingKey } }]`
+  (default: one `Stream` panel on the data source stream). Declare extra queues/exchanges with
+  `rabbitmq.declareQueue/declareExchange/bindQueue` and delete them in a `finally`.
+- Query editor tooltips (radio option descriptions) cover the row below after a click: `page.mouse.move(0, 0)`
+  before clicking the next control.
 - Use a unique marker per message and assert on it; the stream may replay older messages.
 - Lifecycle assertions (Grafana Live stopping a stream, reconnects) need longer timeouts:
   `test.describe.configure({ timeout: 120_000 })`.

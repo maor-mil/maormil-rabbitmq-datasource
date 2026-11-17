@@ -21,6 +21,7 @@
 
 ### Added
 
+* **Per-panel sources and all queue types**: the query editor now chooses what each panel streams - the data source's stream (default, unchanged), any existing stream (offset first/last/next), or classic and quorum queues over **AMQP 1.0** (RabbitMQ 4.0+), either by **tapping an exchange** with a temporary queue (non-destructive) or by consuming an existing queue (destructive, with a warning). Panels with the same source share one consumer.
 * **Advanced TLS**: custom CA certificate, mutual TLS (client certificate and key), skip verification, server name (SNI) and minimum TLS version, for both the AMQP and the stream connection. Settings use Grafana's standard TLS keys; certificates are stored as encrypted secrets.
 * **Client-certificate authentication** (SASL EXTERNAL) as an alternative to username & password.
 * The local/E2E RabbitMQ broker exposes TLS listeners (5671, 5551) with generated test certificates.

@@ -1,5 +1,11 @@
 import { APIRequestContext, expect } from '@playwright/test';
-import { BindingOptions, ExchangeOptions, RabbitMQDataSourceOptions, StreamOptions } from '../../src/types';
+import {
+  BindingOptions,
+  ExchangeOptions,
+  RabbitMQDataSourceOptions,
+  RabbitMQQuery,
+  StreamOptions,
+} from '../../src/types';
 import pluginJson from '../../src/plugin.json';
 import { DEFAULT_STREAM_OPTIONS, withDefaults } from '../../src/components/defaults';
 
@@ -34,9 +40,16 @@ export function datasourceJsonData(overrides: {
  * Rows are sorted by the consumed timestamp (newest first) so new messages are always rendered at the top,
  * even when the stream replays older messages from its first offset.
  */
+export type StreamingPanel = { title: string; query?: Partial<RabbitMQQuery> };
+
 export async function createStreamingDashboard(
   api: APIRequestContext,
-  { uid, title, dsUid }: { uid: string; title: string; dsUid: string }
+  {
+    uid,
+    title,
+    dsUid,
+    panels = [{ title: STREAM_PANEL_TITLE }],
+  }: { uid: string; title: string; dsUid: string; panels?: StreamingPanel[] }
 ): Promise<string> {
   const datasource = { type: DS_TYPE, uid: dsUid };
   const res = await api.post('/api/dashboards/db', {
@@ -47,19 +60,17 @@ export async function createStreamingDashboard(
         title,
         schemaVersion: 41,
         time: { from: 'now-1h', to: 'now' },
-        panels: [
-          {
-            id: 1,
-            type: 'table',
-            title: STREAM_PANEL_TITLE,
-            gridPos: { h: 16, w: 24, x: 0, y: 0 },
-            datasource,
-            targets: [{ refId: 'A', datasource }],
-            transformations: [{ id: 'sortBy', options: { sort: [{ field: TIMESTAMP_FIELD, desc: true }] } }],
-            fieldConfig: { defaults: {}, overrides: [] },
-            options: { showHeader: true },
-          },
-        ],
+        panels: panels.map((panel, index) => ({
+          id: index + 1,
+          type: 'table',
+          title: panel.title,
+          gridPos: { h: 8, w: 24, x: 0, y: index * 8 },
+          datasource,
+          targets: [{ refId: 'A', datasource, ...panel.query }],
+          transformations: [{ id: 'sortBy', options: { sort: [{ field: TIMESTAMP_FIELD, desc: true }] } }],
+          fieldConfig: { defaults: {}, overrides: [] },
+          options: { showHeader: true },
+        })),
       },
     },
   });

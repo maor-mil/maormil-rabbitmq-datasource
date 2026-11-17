@@ -16,6 +16,7 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 ### Reqirements
 
 - RabbitMQ v3.12.10+ with `rabbitmq_stream` plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
+- RabbitMQ v4.0+ to read classic or quorum queues (`Queue` source, over AMQP 1.0)
 - Grafana v13.2.0+
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
@@ -150,10 +151,18 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 <img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/rabbitmq_query_editor.png?raw=true"
  alt="Bindings Section" width="300"/>
 
-Please pay attention that there is no real query editor in the RabbitMQ plugin.
-Once you set the datasource settings you ready to go.
-You can still change the time range query in the default Grafana query editor which will impact what data is being showen and how fast the query interval is.
-This plugin was planned and deisgned to work with the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin.
+Each panel query chooses what it streams (`Source`):
+
+| Source | What the panel shows | Requires |
+|--------|----------------------|----------|
+| `Data source stream` (default) | The stream configured on the data source (declared by the plugin, together with the configured exchanges and bindings). Existing dashboards keep using it. | RabbitMQ 3.9+ with the `rabbitmq_stream` plugin |
+| `Stream` | Any existing stream, read from `First` (all stored messages), `Last` (the last chunk) or `Next` (new messages only). The plugin does not create it. | RabbitMQ 3.9+ |
+| `Queue` → `Tap an exchange` | A copy of every message routed by an exchange: a temporary, server-named, auto-delete queue is bound to the exchange with the given routing key, so **no application queue loses messages**. The broker deletes the temporary queue when the panel stops (or after a minute if it is never read). | RabbitMQ 4.0+ (AMQP 1.0) |
+| `Queue` → `Consume a queue` | The messages of an existing classic or quorum queue. **Destructive**: every message the panel reads is acknowledged and removed, and the panel competes with the queue's other consumers. | RabbitMQ 4.0+ (AMQP 1.0) |
+
+Panels with the same source share one consumer. `Queue` sources connect over AMQP 1.0 on the `AMQP Port`, with the data source's credentials and TLS settings.
+The dashboard time range does not filter the streamed messages.
+This plugin was planned and designed to work with the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin.
 Feel free to check this awesome plugin (and if you wish not to use plotly you can still use transformations together with this RabbitMQ plugin).
 
 ## Reconnecting to the RabbitMQ
@@ -172,7 +181,7 @@ Versions before 2.0.0 had "Should Dispose ..." settings that deleted these objec
 ## Known limitations
 * This plugin only supports JSON based messages that and throws away any non JSON message. The JSON can contain numbers, strings, booleans, and JSON formatted values. Nested object values can be extracted using the Extract Fields transformation (or being processed by the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin).
 * **This plugin automatically attaches timestamps to the messages** when they are received. Timestamps included in the message body can be parsed using the Convert field type transformation. **The key name of the added timestamp is: `RmqMsgConsumedTimestamp`**
-* Currently the only supported offsets are First and Last (no specific offset or timestamp support when consuming messages from the RabbitMQ streams).
+* The data source stream starts from the first or the last stored messages (`Offset From Start`), and a `Stream` source also supports `Next`; starting at a specific offset or timestamp is not supported yet.
 
 ## Known Errors and Causes When Trying To Connect To RabbitMQ
 

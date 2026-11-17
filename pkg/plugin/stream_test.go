@@ -36,6 +36,14 @@ func (m *mockClient) Close() {
 }
 func (m *mockClient) ToString() string { return "mock" }
 
+func (c *mockClient) CloseConsumer() {}
+func (c *mockClient) ConsumeStream(string, rabbitmqclient.Offset, stream.MessagesHandler) (*stream.Consumer, error) {
+	return nil, errors.New("not implemented by the fake")
+}
+func (c *mockClient) ConsumeQueue(context.Context, rabbitmqclient.Source, func([]byte)) error {
+	return errors.New("not implemented by the fake")
+}
+
 // TestRunStream_ConsumeErrorReturnsErrorAndDisposesClient verifies that when
 // Consume() returns an error (other than ErrConsumerWasAlreadyCreated),
 // RunStream returns that error and calls Close() so Grafana can manage the

@@ -13,27 +13,44 @@ import (
 	"github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
+// RunStream streams one Live channel. Grafana runs it once per channel (shared by all panels with the same
+// source) while the channel has subscribers, cancels ctx when the last one leaves, and restarts it with a
+// backoff when it returns an error - that is how the plugin reconnects.
 func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info("Called RunStream method", "RabbitMQ Stream", ds.Client.ToString())
+	source, err := ds.sourceFromPath(req.Path)
+	if err != nil {
+		return err
+	}
+	log.DefaultLogger.Info("Called RunStream method", "RabbitMQ Stream", ds.Client.ToString(), "source", source)
 
-	// Cancelled when RunStream returns (for any reason), so the sender goroutine below never outlives it.
+	// Cancelled when RunStream returns (for any reason), so the sender goroutine never outlives it.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	push := ds.startSender(ctx, sender)
 
+	switch source.Type {
+	case rabbitmqclient.SourceStream:
+		return ds.runStreamSource(ctx, source, push)
+	case rabbitmqclient.SourceQueue:
+		return ds.Client.ConsumeQueue(ctx, source, push)
+	default:
+		return ds.runDatasourceStream(ctx, push)
+	}
+}
+
+// startSender turns message bodies into frames and sends them, on its own goroutine, so a slow SendFrame never
+// runs on (or panics in) the RabbitMQ client's goroutine. The returned push blocks while the sender is busy
+// (back-pressure instead of dropping messages) and returns as soon as ctx is done.
+func (ds *RabbitMQDatasource) startSender(ctx context.Context, sender *backend.StreamSender) func([]byte) {
 	framer := NewFramer()
 	msgCh := make(chan []byte, 256)
 
-	// Sender goroutine: decouples frame building and SendFrame from the RabbitMQ
-	// consumer callback, which runs on the stream client's own goroutine.
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case raw, ok := <-msgCh:
-				if !ok {
-					return
-				}
+			case raw := <-msgCh:
 				log.DefaultLogger.Debug("Received message", "message", string(raw))
 				func() {
 					defer func() {
@@ -44,8 +61,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 							)
 						}
 					}()
-					timestamped_msg := NewTimestampedMessage(raw)
-					frame, err := framer.ToFrame(timestamped_msg)
+					frame, err := framer.ToFrame(NewTimestampedMessage(raw))
 					if err != nil {
 						log.DefaultLogger.Error("Error creating frame from message", "error", err)
 						return
@@ -58,7 +74,17 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 		}
 	}()
 
-	handleMessages := func(consumerContext stream.ConsumerContext, message *amqp.Message) {
+	return func(raw []byte) {
+		select {
+		case msgCh <- raw:
+		case <-ctx.Done():
+		}
+	}
+}
+
+// streamHandler adapts push to the stream client's callback.
+func (ds *RabbitMQDatasource) streamHandler(push func([]byte)) stream.MessagesHandler {
+	return func(_ stream.ConsumerContext, message *amqp.Message) {
 		raw, ok := messageBody(message)
 		if !ok {
 			log.DefaultLogger.Warn("Skipping message without a supported body",
@@ -67,64 +93,68 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 			)
 			return
 		}
-		// Block (instead of dropping the message) while the sender is busy: the stream client only
-		// requests more messages from RabbitMQ once this callback returns, which gives natural
-		// back-pressure. The select still returns as soon as the stream is stopped.
-		select {
-		case msgCh <- raw:
-		case <-ctx.Done():
-		}
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
-			ds.Client.Close()
-			return nil
-		default:
-		}
-
-		log.DefaultLogger.Debug("Creating new consumer", "RabbitMQ Stream", ds.Client.ToString())
-		if !ds.Client.IsConnected() {
-			_, err := ds.Client.Connect()
-			if err != nil {
-				return err
-			}
-		}
-		consumer, err := ds.Client.Consume(handleMessages)
-		if errors.Is(err, rabbitmqclient.ErrConsumerWasAlreadyCreated) {
-			return nil
-		}
-		if err != nil {
-			log.DefaultLogger.Error("Failed to create consumer, stream will be re-established by Grafana", "RabbitMQ Stream", ds.Client.ToString(), "error", err)
-			ds.Client.Close()
-			return err
-		}
-
-		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
-			ds.Client.Close()
-			return nil
-		case <-consumer.NotifyClose():
-			log.DefaultLogger.Info(
-				"RabbitMQ consumer closed, stream will be re-established by Grafana",
-				"RabbitMQ Stream", ds.Client.ToString(),
-			)
-			ds.Client.Close()
-			return fmt.Errorf("RabbitMQ consumer closed unexpectedly")
-		}
+		push(raw)
 	}
 }
 
-// SubscribeStream just returns an ok in this case, since we will always allow the user to successfully connect.
-// Permissions verifications could be done here. Check backend.StreamHandler docs for more details.
+// runDatasourceStream consumes the stream configured on the data source (declaring its topology first).
+func (ds *RabbitMQDatasource) runDatasourceStream(ctx context.Context, push func([]byte)) error {
+	if _, err := ds.Client.Connect(); err != nil {
+		return err
+	}
+	consumer, err := ds.Client.Consume(ds.streamHandler(push))
+	if errors.Is(err, rabbitmqclient.ErrConsumerWasAlreadyCreated) {
+		return nil
+	}
+	if err != nil {
+		log.DefaultLogger.Error("Failed to create consumer, stream will be re-established by Grafana", "RabbitMQ Stream", ds.Client.ToString(), "error", err)
+		ds.Client.Close()
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
+		// Keep the connection: other panels of this data source may still be streaming.
+		ds.Client.CloseConsumer()
+		return nil
+	case <-consumer.NotifyClose():
+		log.DefaultLogger.Info("RabbitMQ consumer closed, stream will be re-established by Grafana", "RabbitMQ Stream", ds.Client.ToString())
+		// The connection may be broken: start over (the other streams of this data source restart too).
+		ds.Client.Close()
+		return fmt.Errorf("RabbitMQ consumer closed unexpectedly")
+	}
+}
+
+// runStreamSource consumes any existing stream chosen in the query editor.
+func (ds *RabbitMQDatasource) runStreamSource(ctx context.Context, source rabbitmqclient.Source, push func([]byte)) error {
+	if _, err := ds.Client.Connect(); err != nil {
+		return err
+	}
+	consumer, err := ds.Client.ConsumeStream(source.Stream, source.Offset, ds.streamHandler(push))
+	if err != nil {
+		return fmt.Errorf("reading stream %q failed: %w", source.Stream, err)
+	}
+
+	select {
+	case <-ctx.Done():
+		if err := consumer.Close(); err != nil {
+			log.DefaultLogger.Debug("Closing the stream consumer failed", "stream", source.Stream, "error", err)
+		}
+		return nil
+	case <-consumer.NotifyClose():
+		ds.Client.Close()
+		return fmt.Errorf("the consumer of stream %q closed unexpectedly", source.Stream)
+	}
+}
+
+// SubscribeStream accepts subscriptions to valid channels only.
 func (ds *RabbitMQDatasource) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
-	log.DefaultLogger.Info("Called SubscribeStream method", "RabbitMQ Stream", ds.Client.ToString())
-	return &backend.SubscribeStreamResponse{
-		Status: backend.SubscribeStreamStatusOK,
-	}, nil
+	if _, err := ds.sourceFromPath(req.Path); err != nil {
+		log.DefaultLogger.Warn("Rejected subscription to an invalid channel", "path", req.Path, "error", err)
+		return &backend.SubscribeStreamResponse{Status: backend.SubscribeStreamStatusNotFound}, nil
+	}
+	return &backend.SubscribeStreamResponse{Status: backend.SubscribeStreamStatusOK}, nil
 }
 
 // PublishStream just returns permission denied in this case, since in this example we don't want the user to send stream data.
@@ -136,27 +166,7 @@ func (ds *RabbitMQDatasource) PublishStream(_ context.Context, _ *backend.Publis
 	}, nil
 }
 
-// messageBody returns a copy of the message body.
-//
-// Messages published with the stream protocol or AMQP 0.9.1 (including through the management UI)
-// carry their payload in AMQP 1.0 Data section(s); AMQP 1.0 publishers may instead use an
-// amqp-value section holding binary or string data.
+// messageBody returns a copy of the body of a message received with the stream protocol.
 func messageBody(message *amqp.Message) ([]byte, bool) {
-	switch {
-	case len(message.Data) == 1:
-		return append([]byte(nil), message.Data[0]...), true
-	case len(message.Data) > 1:
-		var body []byte
-		for _, section := range message.Data {
-			body = append(body, section...)
-		}
-		return body, true
-	}
-	switch v := message.Value.(type) {
-	case []byte:
-		return append([]byte(nil), v...), true
-	case string:
-		return []byte(v), true
-	}
-	return nil, false
+	return rabbitmqclient.MessageBody(message.Data, message.Value)
 }

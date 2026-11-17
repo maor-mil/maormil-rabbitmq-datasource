@@ -107,6 +107,25 @@ export class RabbitMQManagement {
     return connections.length;
   }
 
+  async declareExchange(name: string, type: 'direct' | 'fanout' | 'topic' | 'headers', vhost = DEFAULT_VHOST): Promise<void> {
+    const res = await this.api.put(`/api/exchanges/${enc(vhost)}/${enc(name)}`, { data: { type, durable: false } });
+    expect(res.ok(), await res.text()).toBeTruthy();
+  }
+
+  async declareQueue(name: string, type: 'classic' | 'quorum' | 'stream', vhost = DEFAULT_VHOST): Promise<void> {
+    const res = await this.api.put(`/api/queues/${enc(vhost)}/${enc(name)}`, {
+      data: { durable: type !== 'classic', arguments: { 'x-queue-type': type } },
+    });
+    expect(res.ok(), await res.text()).toBeTruthy();
+  }
+
+  async bindQueue(exchange: string, queue: string, routingKey: string, vhost = DEFAULT_VHOST): Promise<void> {
+    const res = await this.api.post(`/api/bindings/${enc(vhost)}/e/${enc(exchange)}/q/${enc(queue)}`, {
+      data: { routing_key: routingKey },
+    });
+    expect(res.ok(), await res.text()).toBeTruthy();
+  }
+
   async exchangeExists(name: string, vhost = DEFAULT_VHOST): Promise<boolean> {
     const res = await this.api.get(`/api/exchanges/${enc(vhost)}/${enc(name)}`);
     return res.status() === 200;
