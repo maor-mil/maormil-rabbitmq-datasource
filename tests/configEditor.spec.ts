@@ -4,7 +4,8 @@ import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData } from '../src/types'
 test('smoke: should render config editor', async ({ createDataSourceConfigPage, readProvisionedDataSource, page }) => {
   const ds = await readProvisionedDataSource({ fileName: 'datasources.yml' });
   await createDataSourceConfigPage({ type: ds.type });
-  await expect(page.getByText('Stream Settings')).toBeVisible();
+  await expect(page.getByRole('group', { name: 'Stream Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Host', exact: true })).toBeVisible();
 });
 
 test('smoke: provisioned datasource "Save & test" should succeed against the local RabbitMQ', async ({
