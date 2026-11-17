@@ -2,11 +2,20 @@ package rabbitmqclient
 
 import "testing"
 
-func TestRequireRabbitMQ4(t *testing.T) {
-	for version, wantErr := range map[string]bool{"3.13.7": true, "3.9.0": true, "4.0.0": false, "4.2.1": false, "": false, "unknown": false} {
-		err := requireRabbitMQ4(map[string]any{"version": version})
-		if (err != nil) != wantErr {
-			t.Errorf("version %q: err = %v, want error %v", version, err, wantErr)
+func TestRequireRabbitMQ(t *testing.T) {
+	cases := []struct {
+		version      string
+		major, minor int
+		wantErr      bool
+	}{
+		{"3.13.7", 4, 0, true}, {"3.9.0", 4, 0, true}, {"4.0.0", 4, 0, false}, {"4.2.1", 4, 0, false},
+		{"4.1.4", 4, 2, true}, {"4.2.0", 4, 2, false}, {"5.0.1", 4, 2, false},
+		{"", 4, 2, false}, {"unknown", 4, 2, false},
+	}
+	for _, tc := range cases {
+		err := requireRabbitMQ(map[string]any{"version": tc.version}, tc.major, tc.minor, ErrAMQP10Unsupported)
+		if (err != nil) != tc.wantErr {
+			t.Errorf("version %q >= %d.%d: err = %v, want error %v", tc.version, tc.major, tc.minor, err, tc.wantErr)
 		}
 	}
 }
@@ -14,12 +23,15 @@ func TestRequireRabbitMQ4(t *testing.T) {
 func TestAMQP10Address(t *testing.T) {
 	opts := NewRabbitMQStreamOptions()
 	opts.Host = "broker"
-	if got := amqp10Address(opts); got != "amqp://broker:5672/%2F" {
-		t.Errorf("default vhost: %q", got)
+	if got := amqp10Address(opts); got != "amqp://broker:5672" {
+		t.Errorf("plain: %q", got)
 	}
-	opts.IsTLS, opts.AmqpPort, opts.VHost = true, 5671, "team a/#"
-	if got := amqp10Address(opts); got != "amqps://broker:5671/team%20a%2F%23" {
-		t.Errorf("TLS + special vhost: %q", got)
+	opts.IsTLS, opts.AmqpPort = true, 5671
+	if got := amqp10Address(opts); got != "amqps://broker:5671" {
+		t.Errorf("TLS: %q", got)
+	}
+	if got := queueAddress("team a/#+ä"); got != "/queues/team%20a%2F%23%2B%C3%A4" {
+		t.Errorf("queueAddress: %q", got)
 	}
 }
 

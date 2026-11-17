@@ -23,9 +23,9 @@ const (
 type QueueMode string
 
 const (
-	// QueueModeTap binds a temporary, exclusive, auto-delete queue to an exchange: the dashboard sees a copy of
-	// every routed message and no application queue loses messages. The broker deletes the queue when the
-	// panel stops streaming.
+	// QueueModeTap binds a temporary, server-named, auto-delete queue to an exchange: the dashboard sees a copy
+	// of every routed message and no application queue loses messages. The broker deletes the queue when the
+	// panel stops streaming (or after a minute if it is never consumed).
 	QueueModeTap QueueMode = "tap"
 	// QueueModeExisting consumes an existing queue. This is destructive: consumed messages are removed from the
 	// queue and competing consumers share the messages.

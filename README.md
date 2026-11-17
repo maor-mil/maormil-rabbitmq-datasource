@@ -157,7 +157,7 @@ Each panel query chooses what it streams (`Source`):
 |--------|----------------------|----------|
 | `Data source stream` (default) | The stream configured on the data source (declared by the plugin, together with the configured exchanges and bindings). Existing dashboards keep using it. | RabbitMQ 3.9+ with the `rabbitmq_stream` plugin |
 | `Stream` | Any existing stream, read from `First` (all stored messages), `Last` (the last chunk) or `Next` (new messages only). The plugin does not create it. | RabbitMQ 3.9+ |
-| `Queue` → `Tap an exchange` | A copy of every message routed by an exchange: a temporary, exclusive, auto-delete queue is bound to the exchange with the given routing key, so **no application queue loses messages**. The broker deletes the temporary queue when the panel stops. | RabbitMQ 4.0+ (AMQP 1.0) |
+| `Queue` → `Tap an exchange` | A copy of every message routed by an exchange: a temporary, server-named, auto-delete queue is bound to the exchange with the given routing key, so **no application queue loses messages**. The broker deletes the temporary queue when the panel stops (or after a minute if it is never read). | RabbitMQ 4.0+ (AMQP 1.0) |
 | `Queue` → `Consume a queue` | The messages of an existing classic or quorum queue. **Destructive**: every message the panel reads is acknowledged and removed, and the panel competes with the queue's other consumers. | RabbitMQ 4.0+ (AMQP 1.0) |
 
 Panels with the same source share one consumer. `Queue` sources connect over AMQP 1.0 on the `AMQP Port`, with the data source's credentials and TLS settings.
