@@ -37,9 +37,13 @@ func (m *mockClient) Close() {
 func (m *mockClient) ToString() string { return "mock" }
 
 func (c *mockClient) CloseConsumer() {}
-func (c *mockClient) ConsumeStream(string, rabbitmqclient.Offset, stream.MessagesHandler) (*stream.Consumer, error) {
+func (c *mockClient) ConsumeStream(rabbitmqclient.Source, stream.MessagesHandler) (*stream.Consumer, error) {
 	return nil, errors.New("not implemented by the fake")
 }
+func (c *mockClient) ConsumeStreamAMQP10(context.Context, rabbitmqclient.Source, func([]byte)) error {
+	return errors.New("not implemented by the fake")
+}
+func (c *mockClient) ValidateStreamFilter(context.Context, rabbitmqclient.Source) error { return nil }
 func (c *mockClient) ConsumeQueue(context.Context, rabbitmqclient.Source, func([]byte)) error {
 	return errors.New("not implemented by the fake")
 }

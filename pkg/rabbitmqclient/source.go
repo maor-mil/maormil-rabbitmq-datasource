@@ -3,6 +3,7 @@ package rabbitmqclient
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -51,6 +52,20 @@ type Source struct {
 	Queue      string     `json:"q,omitempty"`
 	Exchange   string     `json:"e,omitempty"`
 	RoutingKey string     `json:"k,omitempty"`
+
+	// Stream filtering (SourceStream only), see https://www.rabbitmq.com/docs/stream-filtering.
+	// FilterValues selects chunks with the broker's Bloom filter (RabbitMQ 3.13+); MatchUnfiltered also
+	// delivers messages published without a filter value.
+	FilterValues    []string `json:"fv,omitempty"`
+	MatchUnfiltered bool     `json:"mu,omitempty"`
+	// SQL is an SQL filter expression evaluated by the broker for every message (RabbitMQ 4.2+). It is only
+	// available over AMQP 1.0, so a stream source with SQL is consumed with the AMQP 1.0 client.
+	SQL string `json:"sql,omitempty"`
+}
+
+// UsesAMQP10 reports whether the source has to be consumed over AMQP 1.0.
+func (s Source) UsesAMQP10() bool {
+	return s.Type == SourceQueue || (s.Type == SourceStream && s.SQL != "")
 }
 
 // Normalize trims the names, applies defaults and drops the fields that do not apply to the source type, so
@@ -66,6 +81,9 @@ func (s Source) Normalize() Source {
 		if n.Offset == "" {
 			n.Offset = OffsetFirst
 		}
+		n.FilterValues = normalizeFilterValues(s.FilterValues)
+		n.MatchUnfiltered = s.MatchUnfiltered && len(n.FilterValues) > 0
+		n.SQL = strings.TrimSpace(s.SQL)
 	case SourceQueue:
 		n.QueueMode = s.QueueMode
 		if n.QueueMode == "" {
@@ -79,6 +97,21 @@ func (s Source) Normalize() Source {
 		}
 	}
 	return n
+}
+
+// normalizeFilterValues trims, de-duplicates and sorts the values so equal filters share a channel.
+func normalizeFilterValues(values []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, v := range values {
+		v = strings.TrimSpace(v)
+		if v != "" && !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // Validate reports a configuration error that the user can fix in the query editor.

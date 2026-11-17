@@ -147,7 +147,7 @@ func TestConsumeAnyStreamFromAnOffset(t *testing.T) {
 	client := connect(t, opts)
 	defer client.Close()
 	bodies := make(chan string, 10)
-	consumer, err := client.ConsumeStream(name, OffsetFirst, func(_ stream.ConsumerContext, m *streamamqp.Message) {
+	consumer, err := client.ConsumeStream(Source{Type: SourceStream, Stream: name, Offset: OffsetFirst}, func(_ stream.ConsumerContext, m *streamamqp.Message) {
 		body, _ := MessageBody(m.Data, m.Value)
 		bodies <- string(body)
 	})
