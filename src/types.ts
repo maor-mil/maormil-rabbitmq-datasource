@@ -20,7 +20,19 @@ export interface RabbitMQDataSourceOptions extends DataSourceJsonData {
   vHost: string;
 
   tlsConnection?: boolean;
+  /** PLAIN = username/password, EXTERNAL = the TLS client certificate (requires TLS Client Auth). */
+  saslMechanism: SaslMechanism;
   username: string;
+
+  // TLS settings, using Grafana's standard keys. Only used when tlsConnection is on.
+  /** Present a client certificate (mutual TLS). */
+  tlsAuth: boolean;
+  /** Verify the broker with a custom CA certificate instead of the system roots. */
+  tlsAuthWithCACert: boolean;
+  tlsSkipVerify: boolean;
+  /** Overrides the host name used to verify the broker certificate (SNI). */
+  serverName: string;
+  tlsMinVersion: TlsMinVersion;
 
   streamOptions: StreamOptions;
 
@@ -55,6 +67,14 @@ export interface BindingOptions {
 
 export interface BindingsOptions extends Array<BindingOptions> {}
 
+export type SaslMechanism = 'PLAIN' | 'EXTERNAL';
+export type TlsMinVersion = '1.2' | '1.3';
+
 export interface RabbitMQSecureJsonData {
   password?: string;
+  /** PEM CA certificate (with tlsAuthWithCACert). */
+  tlsCACert?: string;
+  /** PEM client certificate and key (with tlsAuth). */
+  tlsClientCert?: string;
+  tlsClientKey?: string;
 }

@@ -43,12 +43,52 @@ Basic authentication section to connect the RabbitMQ.
 <img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/authentication_section.png?raw=true"
  alt="Authentication Section" width="400"/>
 
-| Field            | Type     | Is Required | Default Value | Description                                      |
-|------------------|----------|-------------|---------------|--------------------------------------------------|
-| `TLS Connection` | `bool`   | Yes         | `false`       | Should use TLS to connect to the RabbitMQ server |
-| `Username`       | `string` | Yes         | `"guest"`     | Username to connect to the RabbitMQ server       |
-| `Password`       | `string` | Yes         | `"guest"`     | Password to connect to the RabbitMQ server       |
+| Field                      | Type     | Is Required | Default Value | Description |
+|----------------------------|----------|-------------|---------------|-------------|
+| `TLS Connection`           | `bool`   | Yes         | `false`       | Use TLS for both the AMQP and the stream connection. Turning it on switches the default ports to `5671` (AMQP) and `5551` (stream) and shows the TLS Settings |
+| `Authentication Mechanism` | `string` | Yes         | `PLAIN`       | `Username & password` (SASL PLAIN) or `Client certificate` (SASL EXTERNAL: the TLS client certificate identifies the user; requires `TLS Client Auth` and the `rabbitmq_auth_mechanism_ssl` plugin on the broker) |
+| `Username`                 | `string` | With PLAIN  | `"guest"`     | Username to connect to the RabbitMQ server |
+| `Password`                 | `string` | With PLAIN  | `"guest"`     | Password to connect to the RabbitMQ server (stored encrypted) |
 ---
+
+#### TLS Settings
+Shown when `TLS Connection` is on. The settings use Grafana's standard TLS keys (see the provisioning example below).
+
+| Field             | Type     | Is Required          | Default Value | Description |
+|-------------------|----------|----------------------|---------------|-------------|
+| `Skip TLS Verify` | `bool`   | No                   | `false`       | Do not verify the server certificate. Insecure - only for testing |
+| `Server Name`     | `string` | No                   | the host      | Name used to verify the server certificate (SNI), e.g. when connecting by IP |
+| `Min TLS Version` | `string` | No                   | `1.2`         | Lowest accepted TLS version: `1.2` or `1.3` |
+| `With CA Cert`    | `bool`   | No                   | `false`       | Verify the server with your own CA instead of the system root CAs |
+| `CA Cert`         | PEM      | With `With CA Cert`  |               | CA certificate(s), PEM encoded (stored encrypted) |
+| `TLS Client Auth` | `bool`   | No                   | `false`       | Present a client certificate (mutual TLS) |
+| `Client Cert`     | PEM      | With `TLS Client Auth` |             | Client certificate, PEM encoded (stored encrypted) |
+| `Client Key`      | PEM      | With `TLS Client Auth` |             | Private key of the client certificate, PEM encoded (stored encrypted) |
+
+Provisioning example (mutual TLS with a private CA and client-certificate authentication):
+
+```yaml
+datasources:
+  - name: RabbitMQ (TLS)
+    type: maormil-rabbitmq-datasource
+    jsonData:
+      host: rabbitmq.example.com
+      amqpPort: 5671
+      streamPort: 5551
+      tlsConnection: true
+      saslMechanism: EXTERNAL   # or PLAIN with username + secureJsonData.password
+      tlsAuthWithCACert: true
+      tlsAuth: true
+      tlsMinVersion: '1.2'
+      # serverName: rabbitmq.internal
+      # tlsSkipVerify: false
+      streamOptions:
+        streamName: rabbitmq.stream
+    secureJsonData:
+      tlsCACert: $__file{/etc/grafana/rabbitmq/ca.pem}
+      tlsClientCert: $__file{/etc/grafana/rabbitmq/client.pem}
+      tlsClientKey: $__file{/etc/grafana/rabbitmq/client-key.pem}
+```
  
 #### Stream Settings
 Stream decleration settings section, where you define the settings of your wanted
@@ -128,7 +168,6 @@ Delete objects you no longer need in the RabbitMQ itself (e.g. with the manageme
 Versions before 2.0.0 had "Should Dispose ..." settings that deleted these objects - often unexpectedly, e.g. whenever the last panel was closed. They were removed; old values in saved datasources are ignored.
 
 ## Known limitations
-* This plugin does not support advanced TLS Configuration for RabbitMQ connections.
 * This plugin only supports JSON based messages that and throws away any non JSON message. The JSON can contain numbers, strings, booleans, and JSON formatted values. Nested object values can be extracted using the Extract Fields transformation (or being processed by the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin).
 * **This plugin automatically attaches timestamps to the messages** when they are received. Timestamps included in the message body can be parsed using the Convert field type transformation. **The key name of the added timestamp is: `RmqMsgConsumedTimestamp`**
 * Currently the only supported offsets are First and Last (no specific offset or timestamp support when consuming messages from the RabbitMQ streams).

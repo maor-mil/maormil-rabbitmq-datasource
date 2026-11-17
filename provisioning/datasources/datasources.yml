@@ -25,6 +25,12 @@ datasources:
       streamPort: 5552
       vHost: "/"
       tlsConnection: false
+      saslMechanism: PLAIN
+      tlsAuth: false
+      tlsAuthWithCACert: false
+      tlsSkipVerify: false
+      serverName: ''
+      tlsMinVersion: '1.2'
       username: guest
       streamOptions:
         streamName: rabbitmq.stream

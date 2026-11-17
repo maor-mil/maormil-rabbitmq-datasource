@@ -39,12 +39,14 @@ consumer and connections. Don't add deletion to stop/dispose paths — they run 
 | `src/` | `components/ConfigEditor.tsx` (all settings), `QueryEditor.tsx` (stub), `types.ts`, `components/defaults.ts` |
 | `tests/` | Playwright E2E suite (see below) |
 | `provisioning/` | Data source + dashboard loaded by the dev/E2E Grafana |
-| `docker/rabbitmq/` | Broker config for the compose stack (`enabled_plugins`) |
+| `docker/rabbitmq/` | Broker config for the compose stack (`enabled_plugins`, TLS listeners in `20-tls.conf`); `tls/generate-certs.sh` creates throwaway test certificates in the git-ignored `tls/generated/` via the one-shot `rabbitmq-certs` service (read them in tests with `tests/helpers/tls.ts`) |
 | `demo/` | `go run ./demo` publishes random JSON into `rabbitmq.stream` |
 
 ## Settings contract (keep in sync)
 
-Settings live in `jsonData`; only `password` is in `secureJsonData`. The shape and defaults are defined in **four**
+Settings live in `jsonData`; secrets (`password`, `tlsCACert`, `tlsClientCert`, `tlsClientKey`) are in `secureJsonData`.
+TLS uses Grafana's standard keys (`tlsAuth`, `tlsAuthWithCACert`, `tlsSkipVerify`, `serverName`) plus `tlsMinVersion` and
+`saslMechanism` (`PLAIN`/`EXTERNAL`); `pkg/rabbitmqclient/tls.go` builds one `*tls.Config` for both connections. The shape and defaults are defined in **four**
 places that must change together — use the `add-datasource-setting` skill:
 
 1. `src/types.ts` and `src/components/defaults.ts` (UI)
@@ -108,7 +110,8 @@ and both containers' logs as an artifact.
 
 ## RabbitMQ facts that matter here
 
-- Ports: stream 5552 (TLS 5551), AMQP 5672 (TLS 5671), management 15672.
+- Ports: stream 5552 (TLS 5551), AMQP 5672 (TLS 5671), management 15672. amqp091-go only uses TLS with the `amqps`
+  scheme. SASL EXTERNAL maps the client certificate CN to an existing RabbitMQ user.
 - Version gates: streams 3.9+; stream filtering (Bloom) 3.13+ and stream client ≥ v1.3.3; the AMQP 1.0 Go client
   (`rabbitmq-amqp-go-client`) needs RabbitMQ 4.0+; property filters 4.1+; **SQL filter expressions 4.2+ and only over
   AMQP 1.0** (not the stream protocol).

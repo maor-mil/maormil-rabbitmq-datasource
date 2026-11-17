@@ -65,6 +65,55 @@ describe('ConfigEditor', () => {
   });
 });
 
+describe('ConfigEditor TLS', () => {
+  const configured = (patch: Partial<RabbitMQDataSourceOptions>, secure = {}) =>
+    settings({ ...DEFAULT_OPTIONS, ...patch }, { password: true, ...secure });
+
+  it('only shows the TLS settings when "TLS Connection" is on', () => {
+    const { rerender } = render(<ConfigEditor options={configured({})} onOptionsChange={jest.fn()} />);
+    expect(screen.queryByText('TLS Settings')).not.toBeInTheDocument();
+
+    rerender(<ConfigEditor options={configured({ tlsConnection: true })} onOptionsChange={jest.fn()} />);
+    expect(screen.getByText('TLS Settings')).toBeInTheDocument();
+    expect(screen.queryByLabelText('CA Cert')).not.toBeInTheDocument();
+
+    rerender(
+      <ConfigEditor options={configured({ tlsConnection: true, tlsAuthWithCACert: true, tlsAuth: true })} onOptionsChange={jest.fn()} />
+    );
+    expect(screen.getByLabelText('CA Cert')).toBeInTheDocument();
+    expect(screen.getByLabelText('Client Cert')).toBeInTheDocument();
+    expect(screen.getByLabelText('Client Key')).toBeInTheDocument();
+  });
+
+  it('switches the standard ports when TLS is toggled, but keeps custom ports', () => {
+    const onOptionsChange = jest.fn();
+    const { rerender } = render(<ConfigEditor options={configured({})} onOptionsChange={onOptionsChange} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'TLS Connection' }));
+    expect(onOptionsChange.mock.calls[0][0].jsonData).toMatchObject({ tlsConnection: true, amqpPort: 5671, streamPort: 5551 });
+
+    onOptionsChange.mockClear();
+    rerender(<ConfigEditor options={configured({ amqpPort: 1234, streamPort: 5552 })} onOptionsChange={onOptionsChange} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'TLS Connection' }));
+    expect(onOptionsChange.mock.calls[0][0].jsonData).toMatchObject({ amqpPort: 1234, streamPort: 5551 });
+  });
+
+  it('keeps unsaved secrets when another secret changes', () => {
+    const onOptionsChange = jest.fn();
+    const options = configured({ tlsConnection: true, tlsAuthWithCACert: true });
+    options.secureJsonData = { tlsCACert: 'CA PEM' };
+    render(<ConfigEditor options={options} onOptionsChange={onOptionsChange} />);
+
+    fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), { target: { value: 'new-password' } });
+
+    expect(onOptionsChange.mock.calls[0][0].secureJsonData).toEqual({ tlsCACert: 'CA PEM', password: 'new-password' });
+  });
+
+  it('hides username and password for EXTERNAL authentication', () => {
+    render(<ConfigEditor options={configured({ tlsConnection: true, saslMechanism: 'EXTERNAL' })} onOptionsChange={jest.fn()} />);
+    expect(screen.queryByRole('textbox', { name: 'Username' })).not.toBeInTheDocument();
+  });
+});
+
 describe('withDefaults', () => {
   it('fills missing top-level and nested stream values without overriding existing ones', () => {
     const filled = withDefaults({ host: 'broker', streamOptions: { streamName: 'custom', maxAge: 0 } as any });
