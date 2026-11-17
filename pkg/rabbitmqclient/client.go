@@ -147,6 +147,13 @@ func (client *RabbitMQStreamClient) IsConnected() bool {
 	return !client.Env.IsClosed()
 }
 
+// closeAndLog closes c and logs the error instead of silently discarding it.
+func closeAndLog(what string, c interface{ Close() error }) {
+	if err := c.Close(); err != nil {
+		log.DefaultLogger.Debug("Failed to close "+what, "error", err)
+	}
+}
+
 func (client *RabbitMQStreamClient) createAmqpConnection() (*amqp.Connection, error) {
 	options := client.RabbitMQOptions
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%d/%s", options.User, options.Password, options.Host, options.AmqpPort, options.VHost))
@@ -175,12 +182,12 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 		log.DefaultLogger.Error("Couldn't connect to the RabbitMQ with AMQP connection", "error", err)
 		return client, err
 	}
-	defer conn.Close()
+	defer closeAndLog("AMQP connection", conn)
 	ch, err := conn.Channel()
 	if err != nil {
 		return client, err
 	}
-	defer ch.Close()
+	defer closeAndLog("AMQP channel", ch)
 	log.DefaultLogger.Debug("Successfully created new channel to the RabbitMQ...")
 
 	log.DefaultLogger.Debug("Trying to create the RabbitMQ objects...")
@@ -213,12 +220,12 @@ func (client *RabbitMQStreamClient) CloseConnection() error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer closeAndLog("AMQP connection", conn)
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
 	}
-	defer ch.Close()
+	defer closeAndLog("AMQP channel", ch)
 	log.DefaultLogger.Debug("Successfully created new channel to the RabbitMQ...")
 
 	if _, err := client.DisposeBindings(ch); err != nil {
