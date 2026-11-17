@@ -5,7 +5,7 @@ const STREAM_TIMEOUT = { timeout: 30_000 };
 
 // These cases exercise the JSON → data frame conversion (pkg/plugin/framer.go) with messages whose shape
 // changes over time. Each test uses its own data source and stream, so a message that breaks the plugin
-// cannot be replayed into other tests. Keep this file last: a crashing plugin process restarts every
+// cannot be replayed into other tests. Keep this file last (90-): a crashing plugin process restarts every
 // data source instance.
 test.describe('message edge cases', () => {
   test('a field whose type changes between messages keeps receiving values', async ({

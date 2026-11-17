@@ -21,6 +21,9 @@
 
 ### Added
 
+* **Advanced TLS**: custom CA certificate, mutual TLS (client certificate and key), skip verification, server name (SNI) and minimum TLS version, for both the AMQP and the stream connection. Settings use Grafana's standard TLS keys; certificates are stored as encrypted secrets.
+* **Client-certificate authentication** (SASL EXTERNAL) as an alternative to username & password.
+* The local/E2E RabbitMQ broker exposes TLS listeners (5671, 5551) with generated test certificates.
 * End-to-end test suite (Playwright + `@grafana/plugin-e2e`) running against Grafana and a real RabbitMQ broker: config editor, health check, provisioned topology, streaming (direct and through exchanges), and lifecycle/edge cases. It reproduces several existing bugs, which are tracked in `tests/known-bugs.ts`.
 * The local/provisioned data source now declares an example fanout exchange (`rabbitmq.exchange`) bound to the stream.
 

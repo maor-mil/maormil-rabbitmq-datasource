@@ -1,13 +1,37 @@
 import React, { ChangeEvent, SetStateAction } from 'react';
 
-import { FieldSet, InlineField, InlineSwitch, Input, SecretInput } from '@grafana/ui';
+import { FieldSet, InlineField, InlineSwitch, Input, RadioButtonGroup, SecretInput } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 
-import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData, ExchangesOptions, BindingsOptions, StreamOptions } from '../types';
+import {
+  RabbitMQDataSourceOptions,
+  RabbitMQSecureJsonData,
+  ExchangesOptions,
+  BindingsOptions,
+  SaslMechanism,
+  StreamOptions,
+} from '../types';
 import { ExchangesComponent } from './ExchangesComponent';
 import { BindingsComponent } from './BindingsComponent';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
-import { DEFAULT_OPTIONS, DEFAULT_PASSWORD, DEFAULT_STREAM_OPTIONS, withDefaults } from './defaults';
+import {
+  DEFAULT_OPTIONS,
+  DEFAULT_PASSWORD,
+  DEFAULT_STREAM_OPTIONS,
+  PLAIN_PORTS,
+  TLS_PORTS,
+  withDefaults,
+} from './defaults';
+import { TLSSecretKey, TLSSettings } from './TLSSettings';
+
+const SASL_MECHANISMS: Array<{ label: string; value: SaslMechanism; description: string }> = [
+  { label: 'Username & password', value: 'PLAIN', description: 'SASL PLAIN' },
+  {
+    label: 'Client certificate',
+    value: 'EXTERNAL',
+    description: 'SASL EXTERNAL: the TLS client certificate identifies the user (requires TLS Client Auth)',
+  },
+];
 
 interface Props extends DataSourcePluginOptionsEditorProps<RabbitMQDataSourceOptions, RabbitMQSecureJsonData> {}
 
@@ -44,31 +68,34 @@ export const ConfigEditor = (props: Props) => {
     callback(isNaN(parsedValue) ? defaultValue : parsedValue);
   };
 
-  // Secure field (only sent to the backend)
-  const onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => {
+  // Secure fields (only sent to the backend). Keep the other, not yet saved secrets when one changes.
+  const onSecretChange = (key: keyof RabbitMQSecureJsonData, value: string) => {
+    onOptionsChange({ ...options, jsonData, secureJsonData: { ...options.secureJsonData, [key]: value } });
+  };
+
+  const onSecretReset = (key: keyof RabbitMQSecureJsonData) => {
     onOptionsChange({
       ...options,
       jsonData,
-      secureJsonData: {
-        password: event.target.value,
-      },
+      secureJsonFields: { ...options.secureJsonFields, [key]: false },
+      secureJsonData: { ...options.secureJsonData, [key]: '' },
     });
   };
 
-  const onResetPassword = () => {
-    onOptionsChange({
-      ...options,
-      jsonData,
-      secureJsonFields: {
-        ...options.secureJsonFields,
-        password: false,
-      },
-      secureJsonData: {
-        ...options.secureJsonData,
-        password: '',
-      },
+  const onPasswordChange = (event: ChangeEvent<HTMLInputElement>) => onSecretChange('password', event.target.value);
+  const onResetPassword = () => onSecretReset('password');
+
+  // Switch between the standard plain and TLS ports, unless the user configured custom ports.
+  const onTLSConnectionChange = (enabled: boolean) => {
+    const [from, to] = enabled ? [PLAIN_PORTS, TLS_PORTS] : [TLS_PORTS, PLAIN_PORTS];
+    updateJsonData({
+      tlsConnection: enabled,
+      amqpPort: jsonData.amqpPort === from.amqpPort ? to.amqpPort : jsonData.amqpPort,
+      streamPort: jsonData.streamPort === from.streamPort ? to.streamPort : jsonData.streamPort,
     });
   };
+
+  const usesPassword = jsonData.saslMechanism !== 'EXTERNAL';
 
   return (
     <div>
@@ -80,7 +107,11 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="AMQP Port" labelWidth={LABEL_WIDTH} tooltip="The AMQP port of the RabbitMQ server">
+        <InlineField
+          label="AMQP Port"
+          labelWidth={LABEL_WIDTH}
+          tooltip="The AMQP port of the RabbitMQ server (5672, or 5671 with TLS)"
+        >
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_OPTIONS.amqpPort, (value) =>
@@ -91,7 +122,11 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Stream Port" labelWidth={LABEL_WIDTH} tooltip="The stream port of the RabbitMQ server">
+        <InlineField
+          label="Stream Port"
+          labelWidth={LABEL_WIDTH}
+          tooltip="The stream port of the RabbitMQ server (5552, or 5551 with TLS)"
+        >
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_OPTIONS.streamPort, (value) =>
@@ -111,30 +146,61 @@ export const ConfigEditor = (props: Props) => {
         </InlineField>
       </FieldSet>
       <FieldSet label="Authentication">
-        <InlineField label="TLS Connection" labelWidth={LABEL_WIDTH} tooltip="Should use TLS to connect to the RabbitMQ server">
+        <InlineField
+          label="TLS Connection"
+          labelWidth={LABEL_WIDTH}
+          tooltip="Should use TLS to connect to the RabbitMQ server"
+        >
           <InlineSwitch
-            onChange={(event) => updateJsonData({ tlsConnection: event.currentTarget.checked })}
+            onChange={(event) => onTLSConnectionChange(event.currentTarget.checked)}
             value={jsonData.tlsConnection ?? false}
             width={SWITCH_WIDTH}
           />
         </InlineField>
-        <InlineField label="Username" labelWidth={LABEL_WIDTH} tooltip="Username to connect to the RabbitMQ server">
-          <Input
-            onChange={(event) => updateJsonData({ username: event.currentTarget.value || DEFAULT_OPTIONS.username })}
-            value={jsonData.username}
-            width={INPUT_WIDTH}
+        <InlineField
+          label="Authentication Mechanism"
+          labelWidth={LABEL_WIDTH}
+          tooltip="Username & password (SASL PLAIN), or the TLS client certificate (SASL EXTERNAL; the broker needs the rabbitmq_auth_mechanism_ssl plugin)"
+        >
+          <RadioButtonGroup
+            options={SASL_MECHANISMS}
+            value={jsonData.saslMechanism}
+            onChange={(value) => updateJsonData({ saslMechanism: value })}
           />
         </InlineField>
-        <InlineField label="Password" labelWidth={LABEL_WIDTH} tooltip="Password to connect to the RabbitMQ server">
-          <SecretInput
-            isConfigured={!!secureJsonFields.password}
-            value={secureJsonData?.password ?? DEFAULT_PASSWORD}
-            width={INPUT_WIDTH}
-            onReset={onResetPassword}
-            onChange={onPasswordChange}
-          />
-        </InlineField>
+        {usesPassword && (
+          <>
+            <InlineField label="Username" labelWidth={LABEL_WIDTH} tooltip="Username to connect to the RabbitMQ server">
+              <Input
+                onChange={(event) =>
+                  updateJsonData({ username: event.currentTarget.value || DEFAULT_OPTIONS.username })
+                }
+                value={jsonData.username}
+                width={INPUT_WIDTH}
+              />
+            </InlineField>
+            <InlineField label="Password" labelWidth={LABEL_WIDTH} tooltip="Password to connect to the RabbitMQ server">
+              <SecretInput
+                isConfigured={!!secureJsonFields.password}
+                value={secureJsonData?.password ?? DEFAULT_PASSWORD}
+                width={INPUT_WIDTH}
+                onReset={onResetPassword}
+                onChange={onPasswordChange}
+              />
+            </InlineField>
+          </>
+        )}
       </FieldSet>
+      {jsonData.tlsConnection && (
+        <TLSSettings
+          jsonData={jsonData}
+          secureJsonData={secureJsonData}
+          secureJsonFields={secureJsonFields}
+          updateJsonData={updateJsonData}
+          onSecretChange={(key: TLSSecretKey, value: string) => onSecretChange(key, value)}
+          onSecretReset={(key: TLSSecretKey) => onSecretReset(key)}
+        />
+      )}
       <FieldSet label="Stream Settings">
         <InlineField label="Stream Name" labelWidth={LABEL_WIDTH} tooltip="The stream name that will be created">
           <Input
@@ -153,14 +219,22 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Offset From Start" labelWidth={LABEL_WIDTH} tooltip="Should the consumer consume messages from the start or the end of the stored messages in the stream">
+        <InlineField
+          label="Offset From Start"
+          labelWidth={LABEL_WIDTH}
+          tooltip="Should the consumer consume messages from the start or the end of the stored messages in the stream"
+        >
           <InlineSwitch
             onChange={(event) => updateStreamOptions({ offsetFromStart: event.currentTarget.checked })}
             value={streamOptions.offsetFromStart}
             width={SWITCH_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Age" labelWidth={LABEL_WIDTH} tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)">
+        <InlineField
+          label="Max Age"
+          labelWidth={LABEL_WIDTH}
+          tooltip="The max age of messages in the stream in nano-seconds (set to 0 to disable the max-age limit)"
+        >
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_OPTIONS.maxAge, (value) =>
@@ -171,7 +245,11 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Length Bytes" labelWidth={LABEL_WIDTH} tooltip="The max length of messages in bytes in the stream (set to 0 to disable the max-length-bytes limit)">
+        <InlineField
+          label="Max Length Bytes"
+          labelWidth={LABEL_WIDTH}
+          tooltip="The max length of messages in bytes in the stream (set to 0 to disable the max-length-bytes limit)"
+        >
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_OPTIONS.maxLengthBytes, (value) =>
@@ -182,7 +260,11 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="Max Segment Size Bytes" labelWidth={LABEL_WIDTH} tooltip="The max segment size in bytes in the stream">
+        <InlineField
+          label="Max Segment Size Bytes"
+          labelWidth={LABEL_WIDTH}
+          tooltip="The max segment size in bytes in the stream"
+        >
           <Input
             onChange={(event) =>
               onNumericInputChange(event.currentTarget.value, DEFAULT_STREAM_OPTIONS.maxSegmentSizeBytes, (value) =>
@@ -193,7 +275,11 @@ export const ConfigEditor = (props: Props) => {
             width={INPUT_WIDTH}
           />
         </InlineField>
-        <InlineField label="CRC" labelWidth={LABEL_WIDTH} tooltip="When CRC control is disabled, the perfomance is increased">
+        <InlineField
+          label="CRC"
+          labelWidth={LABEL_WIDTH}
+          tooltip="When CRC control is disabled, the perfomance is increased"
+        >
           <InlineSwitch
             onChange={(event) => updateStreamOptions({ crc: event.currentTarget.checked })}
             value={streamOptions.crc}

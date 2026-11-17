@@ -1,6 +1,7 @@
 package rabbitmqclient
 
 import (
+	"crypto/tls"
 	"fmt"
 	"sync"
 	"time"
@@ -26,13 +27,16 @@ type Client interface {
 }
 
 type RabbitMQStreamOptions struct {
-	Host                  string             `json:"host"`
-	StreamPort            int                `json:"streamPort"`
-	AmqpPort              int                `json:"amqpPort"`
-	VHost                 string             `json:"vHost"`
-	User                  string             `json:"username"`
-	Password              string             `json:"password"`
-	IsTLS                 bool               `json:"tlsConnection"`
+	Host       string `json:"host"`
+	StreamPort int    `json:"streamPort"`
+	AmqpPort   int    `json:"amqpPort"`
+	VHost      string `json:"vHost"`
+	User       string `json:"username"`
+	Password   string `json:"password"`
+	IsTLS      bool   `json:"tlsConnection"`
+	// SASLMechanism is "PLAIN" (username/password, default) or "EXTERNAL" (TLS client certificate).
+	SASLMechanism string `json:"saslMechanism"`
+	TLSOptions
 	RequestedHeartbeat    time.Duration      `json:"requestedHeartbeat"`
 	RequestedMaxFrameSize int                `json:"requestedMaxFrameSize"`
 	WriteBuffer           int                `json:"writeBuffer"`
@@ -50,6 +54,9 @@ type RabbitMQStreamClient struct {
 	Exchanges       []Exchange
 	Bindings        []Binding
 
+	// tlsConfig is built from the options on Connect; nil when TLS is disabled.
+	tlsConfig *tls.Config
+
 	// mu serialises Connect, Consume, Close and IsConnected, which are called concurrently by
 	// RunStream, CheckHealth and instance disposal.
 	mu sync.Mutex
@@ -66,16 +73,22 @@ func (client *RabbitMQStreamClient) SetRabbitMQOptions(rabbitmqStreamOptions *Ra
 
 func (client *RabbitMQStreamClient) SetEnv() (*RabbitMQStreamClient, error) {
 	user, password, vhost := streamCredentials(client.RabbitMQOptions)
+	options := stream.NewEnvironmentOptions().
+		SetHost(client.RabbitMQOptions.Host).
+		SetPort(client.RabbitMQOptions.StreamPort).
+		SetVHost(vhost).
+		SetUser(user).
+		SetPassword(password).
+		IsTLS(client.RabbitMQOptions.IsTLS)
+	if client.tlsConfig != nil {
+		options = options.SetTLSConfig(client.tlsConfig)
+	}
+	if client.RabbitMQOptions.SASLMechanism == SASLMechanismExternal {
+		options = options.SetSaslConfiguration(stream.SaslConfigurationExternal)
+	}
 	// Connect to the broker
 	env, err := stream.NewEnvironment(
-		stream.NewEnvironmentOptions().
-			SetHost(client.RabbitMQOptions.Host).
-			SetPort(client.RabbitMQOptions.StreamPort).
-			SetVHost(vhost).
-			SetUser(user).
-			SetPassword(password).
-			IsTLS(client.RabbitMQOptions.IsTLS).
-			//SetTLSConfig(&tls.Config{}). - TLSConfig is not supported at the moment
+		options.
 			SetRequestedHeartbeat(client.RabbitMQOptions.RequestedHeartbeat * time.Second).
 			SetRequestedMaxFrameSize(client.RabbitMQOptions.RequestedMaxFrameSize).
 			SetWriteBuffer(client.RabbitMQOptions.WriteBuffer).
@@ -154,7 +167,7 @@ func closeAndLog(what string, c interface{ Close() error }) {
 }
 
 func (client *RabbitMQStreamClient) createAmqpConnection() (*amqp.Connection, error) {
-	return amqp.DialConfig(amqpAddress(client.RabbitMQOptions), amqpConfig(client.RabbitMQOptions))
+	return amqp.DialConfig(amqpAddress(client.RabbitMQOptions), amqpConfig(client.RabbitMQOptions, client.tlsConfig))
 }
 
 func (client *RabbitMQStreamClient) Connect() (Client, error) {
@@ -163,6 +176,15 @@ func (client *RabbitMQStreamClient) Connect() (Client, error) {
 
 	// Never leak a previous connection.
 	client.close()
+
+	if err := validateSASLMechanism(client.RabbitMQOptions.SASLMechanism); err != nil {
+		return client, err
+	}
+	tlsConfig, err := buildTLSConfig(client.RabbitMQOptions)
+	if err != nil {
+		return client, err
+	}
+	client.tlsConfig = tlsConfig
 
 	log.DefaultLogger.Debug("Trying to set the RabbitMQ environment...")
 	if _, err := client.SetEnv(); err != nil {

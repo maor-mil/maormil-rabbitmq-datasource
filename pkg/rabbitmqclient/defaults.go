@@ -38,6 +38,8 @@ func NewRabbitMQStreamOptions() *RabbitMQStreamOptions {
 		RequestedMaxFrameSize: DefaultRequestedMaxFrameSize,
 		WriteBuffer:           DefaultWriteBuffer,
 		ReadBuffer:            DefaultReadBuffer,
+		SASLMechanism:         SASLMechanismPlain,
+		TLSOptions:            TLSOptions{MinVersion: TLSVersion12},
 		StreamOptions:         NewStreamOptions(),
 	}
 }

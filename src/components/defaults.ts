@@ -15,13 +15,23 @@ export const DEFAULT_STREAM_OPTIONS: StreamOptions = {
   crc: false,
 };
 
+/** Standard RabbitMQ ports without and with TLS. */
+export const PLAIN_PORTS = { amqpPort: 5672, streamPort: 5552 };
+export const TLS_PORTS = { amqpPort: 5671, streamPort: 5551 };
+
 export const DEFAULT_OPTIONS: RabbitMQDataSourceOptions = {
   host: 'localhost',
   amqpPort: 5672,
   streamPort: 5552,
   vHost: '/',
   tlsConnection: false,
+  saslMechanism: 'PLAIN',
   username: 'guest',
+  tlsAuth: false,
+  tlsAuthWithCACert: false,
+  tlsSkipVerify: false,
+  serverName: '',
+  tlsMinVersion: '1.2',
   streamOptions: DEFAULT_STREAM_OPTIONS,
   exchangesOptions: [],
   bindingsOptions: [],

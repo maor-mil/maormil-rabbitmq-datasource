@@ -1,5 +1,5 @@
 import { test as base, expect } from '@grafana/plugin-e2e';
-import { BindingOptions, ExchangeOptions, StreamOptions } from '../src/types';
+import { BindingOptions, ExchangeOptions, RabbitMQDataSourceOptions, RabbitMQSecureJsonData, StreamOptions } from '../src/types';
 import {
   createStreamingDashboard,
   datasourceJsonData,
@@ -21,6 +21,10 @@ export type StreamingEnv = {
 
 export type StreamingEnvOptions = {
   streamOptions?: Partial<StreamOptions>;
+  /** Connection settings (ports, TLS, authentication) on top of the defaults. */
+  connection?: Partial<RabbitMQDataSourceOptions>;
+  /** Secrets; defaults to the guest password. */
+  secureJsonData?: RabbitMQSecureJsonData;
   /** Built from the env id; receives the stream name so bindings can target it. */
   topology?: (env: { id: string; streamName: string }) => {
     exchangesOptions?: ExchangeOptions[];
@@ -55,8 +59,12 @@ export const test = base.extend<Fixtures>({
       const ds = await createDataSource({
         type: DS_TYPE,
         name: `RabbitMQ ${id}`,
-        jsonData: datasourceJsonData({ streamOptions: { ...options.streamOptions, streamName }, ...topology }),
-        secureJsonData: { password: 'guest' },
+        jsonData: datasourceJsonData({
+          streamOptions: { ...options.streamOptions, streamName },
+          connection: options.connection,
+          ...topology,
+        }),
+        secureJsonData: options.secureJsonData ?? { password: 'guest' },
       });
       const dashboardUid = await createStreamingDashboard(page.request, { uid: id, title: `E2E ${id}`, dsUid: ds.uid });
       const env = { id, dsUid: ds.uid, dashboardUid, streamName, panelTitle: STREAM_PANEL_TITLE };
