@@ -10,4 +10,7 @@ export default defineConfig<PluginOptions>(baseConfig, {
   // Streaming tests share one RabbitMQ broker and provisioned datasource, so run spec files serially.
   fullyParallel: false,
   workers: 1,
+  // Streaming assertions wait up to 30s for messages to reach a panel, on top of the dashboard and data source setup.
+  // Tests that wait for Grafana Live / RabbitMQ lifecycle events raise this further with test.describe.configure().
+  timeout: 90_000,
 });
