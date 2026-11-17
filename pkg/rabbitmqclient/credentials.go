@@ -1,6 +1,7 @@
 package rabbitmqclient
 
 import (
+	"crypto/tls"
 	"net"
 	"net/url"
 	"strconv"
@@ -14,18 +15,29 @@ import (
 // Neither client may receive them inside a hand-built URI (issue #3).
 
 // amqpAddress is the AMQP 0.9.1 address without credentials or vhost; both are passed through amqpConfig.
+// TLS ("amqps") is only used when the scheme says so: amqp091-go ignores TLSClientConfig for "amqp".
 func amqpAddress(options *RabbitMQStreamOptions) string {
-	return "amqp://" + net.JoinHostPort(options.Host, strconv.Itoa(options.AmqpPort)) + "/"
+	scheme := "amqp"
+	if options.IsTLS {
+		scheme = "amqps"
+	}
+	return scheme + "://" + net.JoinHostPort(options.Host, strconv.Itoa(options.AmqpPort)) + "/"
 }
 
-// amqpConfig authenticates with SASL PLAIN using the raw credentials and selects the raw vhost, so nothing
-// needs to be escaped. A non-nil SASL list and a non-empty Vhost override whatever the URI contains.
-func amqpConfig(options *RabbitMQStreamOptions) amqp.Config {
+// amqpConfig authenticates with the raw credentials (SASL PLAIN) or the TLS client certificate (SASL
+// EXTERNAL) and selects the raw vhost, so nothing needs to be escaped. A non-nil SASL list and a non-empty
+// Vhost override whatever the URI contains.
+func amqpConfig(options *RabbitMQStreamOptions, tlsConfig *tls.Config) amqp.Config {
+	var auth amqp.Authentication = &amqp.PlainAuth{Username: options.User, Password: options.Password}
+	if options.SASLMechanism == SASLMechanismExternal {
+		auth = &amqp.ExternalAuth{}
+	}
 	return amqp.Config{
-		SASL:      []amqp.Authentication{&amqp.PlainAuth{Username: options.User, Password: options.Password}},
-		Vhost:     options.VHost,
-		Heartbeat: 10 * time.Second,
-		Locale:    "en_US",
+		SASL:            []amqp.Authentication{auth},
+		Vhost:           options.VHost,
+		TLSClientConfig: tlsConfig,
+		Heartbeat:       10 * time.Second,
+		Locale:          "en_US",
 	}
 }
 

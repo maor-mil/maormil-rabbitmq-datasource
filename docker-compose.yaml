@@ -15,14 +15,35 @@ services:
   rabbitmq:
     image: rabbitmq:${RABBITMQ_VERSION:-4.2}-management
     container_name: 'maormil-rabbitmq-datasource-rabbitmq'
+    depends_on:
+      rabbitmq-certs:
+        condition: service_completed_successfully
     ports:
       - 5672:5672/tcp # AMQP 0.9.1 / AMQP 1.0
+      - 5671:5671/tcp # AMQP over TLS
       - 5552:5552/tcp # Stream protocol
+      - 5551:5551/tcp # Stream protocol over TLS
       - 15672:15672/tcp # Management UI + HTTP API
     volumes:
       - ./docker/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ./docker/rabbitmq/20-tls.conf:/etc/rabbitmq/conf.d/20-tls.conf:ro
+      - ./docker/rabbitmq/tls/generated:/etc/rabbitmq/tls:ro
     healthcheck:
-      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'check_port_listener', '5552']
+      test:
+        [
+          'CMD-SHELL',
+          'rabbitmq-diagnostics -q check_port_listener 5552 && rabbitmq-diagnostics -q check_port_listener 5551',
+        ]
       interval: 5s
       timeout: 10s
       retries: 30
+
+  # One-shot: generates throwaway TLS test certificates into docker/rabbitmq/tls/generated (git-ignored).
+  rabbitmq-certs:
+    image: rabbitmq:${RABBITMQ_VERSION:-4.2}-management
+    container_name: 'maormil-rabbitmq-datasource-certs'
+    entrypoint: ['sh', '/generate-certs.sh', '/certs']
+    restart: 'no'
+    volumes:
+      - ./docker/rabbitmq/tls/generate-certs.sh:/generate-certs.sh:ro
+      - ./docker/rabbitmq/tls/generated:/certs

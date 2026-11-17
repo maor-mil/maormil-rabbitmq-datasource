@@ -74,9 +74,14 @@ func getDatasourceSettings(s backend.DataSourceInstanceSettings) (*rabbitmqclien
 
 	log.DefaultLogger.Debug("Successfully unmarshelled the JSONData!")
 
-	if password, exists := s.DecryptedSecureJSONData["password"]; exists {
+	secure := s.DecryptedSecureJSONData
+	if password, exists := secure["password"]; exists {
 		rabbitmqStreamOptions.Password = password
 	}
+	// TLS material is secret and only ever read from secureJsonData.
+	rabbitmqStreamOptions.CACert = secure["tlsCACert"]
+	rabbitmqStreamOptions.ClientCert = secure["tlsClientCert"]
+	rabbitmqStreamOptions.ClientKey = secure["tlsClientKey"]
 
 	log.DefaultLogger.Debug("Successfully decrypted secure JSONData!")
 

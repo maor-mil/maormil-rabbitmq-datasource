@@ -86,7 +86,7 @@ func TestAMQPConnectionKeepsCredentialsOutOfTheURI(t *testing.T) {
 			t.Errorf("address %q does not parse to broker:5672: %+v, %v", address, uri, err)
 		}
 
-		config := amqpConfig(opts)
+		config := amqpConfig(opts, nil)
 		plain, ok := config.SASL[0].(*amqp.PlainAuth)
 		if !ok || plain.Username != "user" || plain.Password != secret {
 			t.Errorf("SASL PLAIN credentials = %+v, want user/%q", config.SASL[0], secret)

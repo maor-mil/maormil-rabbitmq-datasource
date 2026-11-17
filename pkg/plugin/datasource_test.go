@@ -67,3 +67,27 @@ func TestGetDatasourceSettingsRejectsInvalidJSON(t *testing.T) {
 		t.Fatal("expected an error for invalid jsonData")
 	}
 }
+
+func TestGetDatasourceSettingsReadsTLSSecretsOnlyFromSecureJSONData(t *testing.T) {
+	client, err := getDatasourceSettings(settingsFrom(
+		`{"tlsConnection":true,"tlsAuth":true,"tlsAuthWithCACert":true,"serverName":"rabbit.internal","tlsMinVersion":"1.3","saslMechanism":"EXTERNAL","tlsCACert":"must be ignored"}`,
+		map[string]string{"tlsCACert": "CA", "tlsClientCert": "CERT", "tlsClientKey": "KEY"},
+	))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	o := client.RabbitMQOptions
+	if !o.IsTLS || !o.TLSAuth || !o.TLSAuthWithCACert || o.ServerName != "rabbit.internal" || o.MinVersion != "1.3" || o.SASLMechanism != "EXTERNAL" {
+		t.Errorf("TLS settings not parsed: %+v", o.TLSOptions)
+	}
+	if o.CACert != "CA" || o.ClientCert != "CERT" || o.ClientKey != "KEY" {
+		t.Errorf("TLS secrets must come from secureJsonData: %q %q %q", o.CACert, o.ClientCert, o.ClientKey)
+	}
+}
+
+func TestGetDatasourceSettingsTLSDefaults(t *testing.T) {
+	client, _ := getDatasourceSettings(settingsFrom(`{}`, nil))
+	if o := client.RabbitMQOptions; o.SASLMechanism != rabbitmqclient.SASLMechanismPlain || o.MinVersion != rabbitmqclient.TLSVersion12 || o.IsTLS {
+		t.Errorf("unexpected TLS defaults: sasl=%q min=%q tls=%v", o.SASLMechanism, o.MinVersion, o.IsTLS)
+	}
+}
