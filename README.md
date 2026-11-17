@@ -16,7 +16,7 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 ### Reqirements
 
 - RabbitMQ v3.12.10+ with `rabbitmq_stream` plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
-- Grafana v9.4.3+
+- Grafana v13.2.0+
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
@@ -171,6 +171,29 @@ Speical credit for the framer.go which was copied from the MQTT Datasource and m
 The plugin is using 2 main core packages to be able to communicate with the RabbitMQ, both by the [RabbitMQ core team](https://github.com/rabbitmq):
 * [amqp091-go](https://github.com/rabbitmq/amqp091-go)
 * [rabbitmq-stream-go-client](https://github.com/rabbitmq/rabbitmq-stream-go-client)
+
+## Development
+
+Prerequisites: Node.js 24 (see `.nvmrc`), Go (version from `go.mod`, the Go toolchain downloads it automatically), [Mage](https://magefile.org/) and Docker.
+
+```bash
+npm install          # install frontend dependencies
+npm run dev          # build the frontend in watch mode (or `npm run build` for production)
+mage -v build:linux  # build the backend binary that the Grafana container runs (use `mage -v buildAll` for every platform)
+npm run server       # start Grafana (http://localhost:3000) and RabbitMQ (management UI on http://localhost:15672, guest/guest)
+go run ./demo        # publish random JSON messages into the provisioned stream
+```
+
+Checks (the same ones CI runs):
+
+```bash
+npm run typecheck && npm run lint && npm run test:ci && npm run build
+mage -v buildAll && mage coverage
+npx playwright install chromium   # once
+npm run e2e                       # requires `npm run server` to be up
+```
+
+The plugin was scaffolded with [`@grafana/create-plugin`](https://grafana.com/developers/plugin-tools/); update it with `npx @grafana/create-plugin@latest update` (on Windows run it from WSL or a `node:24` container, since the CLI does not support Windows).
 
 ## Contributing
 
