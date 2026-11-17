@@ -35,8 +35,22 @@ datasources:
         maxSegmentSizeBytes: 500000000
         offsetFromStart: true
         crc: false
-      exchangesOptions: []
-      bindingsOptions: []
+      exchangesOptions:
+        - name: rabbitmq.exchange
+          type: fanout
+          durable: true
+          autoDeleted: false
+          internal: false
+          noWait: false
+          shouldDisposeExchange: true
+          disposeIfUnused: true
+      bindingsOptions:
+        - senderName: rabbitmq.exchange
+          routingKey: /
+          receiverName: rabbitmq.stream
+          isQueueBinding: true
+          noWait: false
+          shouldDisposeBinding: true
       requestedHeartbeat: 60
       requestedMaxFrameSize: 1048576
       writeBuffer: 8192

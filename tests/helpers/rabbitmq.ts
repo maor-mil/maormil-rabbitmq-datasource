@@ -1,0 +1,121 @@
+import { APIRequestContext, expect, request } from '@playwright/test';
+
+/** Management HTTP API of the broker started by docker-compose.yaml, as seen from the test runner. */
+export const RABBITMQ_MANAGEMENT_URL = process.env.RABBITMQ_MANAGEMENT_URL ?? 'http://localhost:15672';
+const RABBITMQ_MANAGEMENT_USER = process.env.RABBITMQ_MANAGEMENT_USER ?? 'guest';
+const RABBITMQ_MANAGEMENT_PASSWORD = process.env.RABBITMQ_MANAGEMENT_PASSWORD ?? 'guest';
+
+const DEFAULT_VHOST = '/';
+
+export type PublishOptions = {
+  /** Exchange to publish to. Defaults to the default exchange, which routes by queue/stream name. */
+  exchange?: string;
+  routingKey: string;
+  /** Objects are JSON encoded; strings are sent as-is. */
+  payload: unknown;
+  /** AMQP 0.9.1 headers. Non `x-` headers become AMQP 1.0 application properties in streams. */
+  headers?: Record<string, string | number | boolean>;
+  vhost?: string;
+};
+
+type Binding = { source: string; destination: string; destination_type: string; routing_key: string };
+
+/**
+ * Thin client for the RabbitMQ management HTTP API, used to publish test messages and to
+ * inspect/clean up the topology (streams, exchanges, bindings) the plugin declares.
+ */
+export class RabbitMQManagement {
+  private constructor(private readonly api: APIRequestContext) {}
+
+  static async create(): Promise<RabbitMQManagement> {
+    const api = await request.newContext({
+      baseURL: RABBITMQ_MANAGEMENT_URL,
+      httpCredentials: { username: RABBITMQ_MANAGEMENT_USER, password: RABBITMQ_MANAGEMENT_PASSWORD, send: 'always' },
+    });
+    return new RabbitMQManagement(api);
+  }
+
+  async dispose(): Promise<void> {
+    await this.api.dispose();
+  }
+
+  /** Publishes one message and returns whether the broker routed it to at least one queue/stream. */
+  async publish({ exchange = '', routingKey, payload, headers, vhost = DEFAULT_VHOST }: PublishOptions): Promise<boolean> {
+    const exchangeName = exchange === '' ? 'amq.default' : exchange;
+    const res = await this.api.post(`/api/exchanges/${enc(vhost)}/${enc(exchangeName)}/publish`, {
+      data: {
+        properties: headers ? { headers } : {},
+        routing_key: routingKey,
+        payload: typeof payload === 'string' ? payload : JSON.stringify(payload),
+        payload_encoding: 'string',
+      },
+    });
+    expect(res.ok(), `publish to "${exchangeName}" failed: ${await res.text()}`).toBeTruthy();
+    return (await res.json()).routed === true;
+  }
+
+  /** Publishes directly into a stream (via the default exchange) and fails if the stream does not exist. */
+  async publishToStream(stream: string, payload: unknown, headers?: PublishOptions['headers']): Promise<void> {
+    const routed = await this.publish({ routingKey: stream, payload, headers });
+    expect(routed, `message was not routed: stream "${stream}" does not exist`).toBeTruthy();
+  }
+
+  async queueExists(name: string, vhost = DEFAULT_VHOST): Promise<boolean> {
+    const res = await this.api.get(`/api/queues/${enc(vhost)}/${enc(name)}`);
+    return res.status() === 200;
+  }
+
+  /** Returns the queue type ("stream", "classic", "quorum") or undefined when the queue does not exist. */
+  async queueType(name: string, vhost = DEFAULT_VHOST): Promise<string | undefined> {
+    const res = await this.api.get(`/api/queues/${enc(vhost)}/${enc(name)}`);
+    return res.status() === 200 ? (await res.json()).type : undefined;
+  }
+
+  /** Waits until the plugin has declared the given stream/queue. */
+  async waitForQueue(name: string, timeout = 30_000): Promise<void> {
+    await expect.poll(() => this.queueExists(name), { timeout, message: `queue "${name}" was never declared` }).toBe(true);
+  }
+
+  async deleteQueue(name: string, vhost = DEFAULT_VHOST): Promise<void> {
+    const res = await this.api.delete(`/api/queues/${enc(vhost)}/${enc(name)}`);
+    expect([204, 404], `deleting queue "${name}" failed: ${await res.text()}`).toContain(res.status());
+  }
+
+  async exchangeExists(name: string, vhost = DEFAULT_VHOST): Promise<boolean> {
+    const res = await this.api.get(`/api/exchanges/${enc(vhost)}/${enc(name)}`);
+    return res.status() === 200;
+  }
+
+  async deleteExchange(name: string, vhost = DEFAULT_VHOST): Promise<void> {
+    const res = await this.api.delete(`/api/exchanges/${enc(vhost)}/${enc(name)}`);
+    expect([204, 404], `deleting exchange "${name}" failed: ${await res.text()}`).toContain(res.status());
+  }
+
+  /** Bindings whose source is the given exchange. */
+  async bindingsFrom(exchange: string, vhost = DEFAULT_VHOST): Promise<Binding[]> {
+    const res = await this.api.get(`/api/exchanges/${enc(vhost)}/${enc(exchange)}/bindings/source`);
+    if (res.status() === 404) {
+      return [];
+    }
+    expect(res.ok(), await res.text()).toBeTruthy();
+    return res.json();
+  }
+
+  async createUser(username: string, password: string, vhost = DEFAULT_VHOST): Promise<void> {
+    const user = await this.api.put(`/api/users/${enc(username)}`, { data: { password, tags: '' } });
+    expect(user.ok(), await user.text()).toBeTruthy();
+    const perms = await this.api.put(`/api/permissions/${enc(vhost)}/${enc(username)}`, {
+      data: { configure: '.*', write: '.*', read: '.*' },
+    });
+    expect(perms.ok(), await perms.text()).toBeTruthy();
+  }
+
+  async deleteUser(username: string): Promise<void> {
+    const res = await this.api.delete(`/api/users/${enc(username)}`);
+    expect([204, 404]).toContain(res.status());
+  }
+}
+
+function enc(value: string): string {
+  return encodeURIComponent(value);
+}

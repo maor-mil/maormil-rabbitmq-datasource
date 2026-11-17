@@ -193,6 +193,8 @@ npx playwright install chromium   # once
 npm run e2e                       # requires `npm run server` to be up
 ```
 
+The E2E tests (`tests/`, [`@grafana/plugin-e2e`](https://grafana.com/developers/plugin-tools/e2e-test-a-plugin/) + Playwright) run against the real Grafana and RabbitMQ containers. Each streaming test creates its own data source, stream and dashboard (see `tests/fixtures.ts`) and publishes messages through the RabbitMQ management API (`tests/helpers/rabbitmq.ts`). Bugs the suite reproduces are listed in `tests/known-bugs.ts`; their tests are marked as expected failures until the bug is fixed.
+
 The plugin was scaffolded with [`@grafana/create-plugin`](https://grafana.com/developers/plugin-tools/); update it with `npx @grafana/create-plugin@latest update` (on Windows run it from WSL or a `node:24` container, since the CLI does not support Windows).
 
 ## Contributing
