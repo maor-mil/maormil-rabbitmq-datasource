@@ -161,6 +161,16 @@ Each panel query chooses what it streams (`Source`):
 | `Queue` → `Consume a queue` | The messages of an existing classic or quorum queue. **Destructive**: every message the panel reads is acknowledged and removed, and the panel competes with the queue's other consumers. | RabbitMQ 4.0+ (AMQP 1.0) |
 
 Panels with the same source share one consumer. `Queue` sources connect over AMQP 1.0 on the `AMQP Port`, with the data source's credentials and TLS settings.
+
+A `Stream` source can be filtered by RabbitMQ ([stream filtering](https://www.rabbitmq.com/docs/stream-filtering)):
+
+| Field | What it does | Requires |
+|-------|--------------|----------|
+| `Filter values` | Bloom filter: the broker only sends chunks that contain messages with one of these filter values. Publishers set a message's filter value (stream protocol producer filter, or the `x-stream-filter-value` header/annotation for AMQP 0.9.1 / 1.0); messages that carry it are re-checked exactly. | RabbitMQ 3.13+ |
+| `Match unfiltered` | Also read messages published without a filter value. | RabbitMQ 3.13+ |
+| `SQL filter` | An [SQL filter expression](https://www.rabbitmq.com/docs/stream-filtering#sql-filter-expressions) evaluated by the broker for every message, e.g. `region = 'EMEA' AND p.subject LIKE 'order.%'` (message properties such as `p.subject`, `p.creation_time`, and application properties). The stream is then read over AMQP 1.0 on the AMQP port; an invalid expression is reported on the panel. | RabbitMQ 4.2+ |
+
+Bloom filter values and an SQL filter can be combined: the Bloom filter lets the broker skip whole chunks before evaluating the SQL expression. `go run ./demo` publishes messages with a `region` (filter value and application property) to try it.
 The dashboard time range does not filter the streamed messages.
 This plugin was planned and designed to work with the [Plotly by nline](https://github.com/nline/nline-plotlyjs-panel) panel plugin.
 Feel free to check this awesome plugin (and if you wish not to use plotly you can still use transformations together with this RabbitMQ plugin).

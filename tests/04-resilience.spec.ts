@@ -61,7 +61,8 @@ test.describe('resilience and lifecycle', () => {
       )
       .toBe(true);
     // A connection loss must not delete the stream: the message published before the outage is still stored.
-    await expect.poll(() => rabbitmq.messageCount(env.streamName)).toBeGreaterThanOrEqual(2);
+    // (Message counts come from the management stats, which refresh every ~5s.)
+    await expect.poll(() => rabbitmq.messageCount(env.streamName), { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
   });
 
   test('closing the dashboard does not delete the stream', async ({

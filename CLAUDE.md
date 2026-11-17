@@ -22,7 +22,12 @@ Data flow for a panel:
 3. `RunStream` (`pkg/plugin/stream.go`) dispatches on the source: the data source stream (stream protocol, single
    named consumer), any other stream (`ConsumeStream`, anonymous consumer on the shared environment) or a queue
    (`ConsumeQueue` in `pkg/rabbitmqclient/amqp10.go`: its own AMQP 1.0 connection per channel via `Azure/go-amqp`;
-   tap mode first declares a server-named auto-delete queue with `x-expires` over AMQP 0.9.1). Don't use
+   tap mode first declares a server-named auto-delete queue with `x-expires` over AMQP 0.9.1). A stream source
+   with an SQL filter is read over AMQP 1.0 too (`pkg/rabbitmqclient/stream_filter.go`); Bloom filter values alone
+   use the stream protocol (`ConsumeStream` + post-filter on the `x-stream-filter-value` annotation).
+   **AMQP 1.0 brokers silently drop link filters they don't accept** — always check
+   `receiver.LinkSourceFilterValue(...)` after attaching (`openFilteredStream` does), or a bad SQL expression
+   streams everything unfiltered. Don't use
    `rabbitmq-amqp-go-client`: v1.6.0 does not compile for 32-bit targets (linux/arm), which `mage buildAll` builds. For each message
    `Framer.ToFrame` (`pkg/plugin/framer.go`) flattens the JSON object into fields, adds the `RmqMsgConsumedTimestamp`
    time field and calls `sender.SendFrame`.
