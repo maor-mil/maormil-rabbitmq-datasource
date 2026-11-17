@@ -16,11 +16,15 @@ import (
 func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
 	log.DefaultLogger.Info("Called RunStream method", "RabbitMQ Stream", ds.Client.ToString())
 
+	// Cancelled when RunStream returns (for any reason), so the sender goroutine below never outlives it.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	framer := NewFramer()
 	msgCh := make(chan []byte, 256)
 
 	// Sender goroutine: decouples frame building and SendFrame from the RabbitMQ
-	// consumer callback, preventing back-pressure from blocking message delivery.
+	// consumer callback, which runs on the stream client's own goroutine.
 	go func() {
 		for {
 			select {
@@ -55,32 +59,20 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 	}()
 
 	handleMessages := func(consumerContext stream.ConsumerContext, message *amqp.Message) {
-		var raw []byte
-		if len(message.Data) > 0 {
-			// AMQP 1.0 Data section (most stream-native publishers).
-			raw = make([]byte, len(message.Data[0]))
-			copy(raw, message.Data[0])
-		} else if v, ok := message.Value.([]byte); ok {
-			// AMQP Value section carrying a binary payload (common when messages
-			// are published via an AMQP 0-9-1 client that is routed into a stream).
-			raw = make([]byte, len(v))
-			copy(raw, v)
-		} else if message.Value != nil {
-			log.DefaultLogger.Warn("Received message with unsupported Value type, skipping",
-				"type", fmt.Sprintf("%T", message.Value),
-				"RabbitMQ Stream", ds.Client.ToString(),
-			)
-			return
-		} else {
-			log.DefaultLogger.Warn("Received message with no Data and no Value payload, skipping",
+		raw, ok := messageBody(message)
+		if !ok {
+			log.DefaultLogger.Warn("Skipping message without a supported body",
+				"bodyType", fmt.Sprintf("%T", message.Value),
 				"RabbitMQ Stream", ds.Client.ToString(),
 			)
 			return
 		}
+		// Block (instead of dropping the message) while the sender is busy: the stream client only
+		// requests more messages from RabbitMQ once this callback returns, which gives natural
+		// back-pressure. The select still returns as soon as the stream is stopped.
 		select {
 		case msgCh <- raw:
-		default:
-			log.DefaultLogger.Warn("Message dropped, send buffer full", "RabbitMQ Stream", ds.Client.ToString())
+		case <-ctx.Done():
 		}
 	}
 
@@ -142,4 +134,29 @@ func (ds *RabbitMQDatasource) PublishStream(_ context.Context, _ *backend.Publis
 	return &backend.PublishStreamResponse{
 		Status: backend.PublishStreamStatusPermissionDenied,
 	}, nil
+}
+
+// messageBody returns a copy of the message body.
+//
+// Messages published with the stream protocol or AMQP 0.9.1 (including through the management UI)
+// carry their payload in AMQP 1.0 Data section(s); AMQP 1.0 publishers may instead use an
+// amqp-value section holding binary or string data.
+func messageBody(message *amqp.Message) ([]byte, bool) {
+	switch {
+	case len(message.Data) == 1:
+		return append([]byte(nil), message.Data[0]...), true
+	case len(message.Data) > 1:
+		var body []byte
+		for _, section := range message.Data {
+			body = append(body, section...)
+		}
+		return body, true
+	}
+	switch v := message.Value.(type) {
+	case []byte:
+		return append([]byte(nil), v...), true
+	case string:
+		return []byte(v), true
+	}
+	return nil, false
 }

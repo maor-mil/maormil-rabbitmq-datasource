@@ -163,7 +163,7 @@ func TestFramer_AllFieldsHaveSameLength(t *testing.T) {
 	framer := NewFramer()
 
 	// First message introduces two fields.
-	framer.ToFrame(makeMsg(`{"a":1.0,"b":2.0}`))
+	_, _ = framer.ToFrame(makeMsg(`{"a":1.0,"b":2.0}`))
 
 	// Second message only provides "a"; "b" must be padded to len 1.
 	frame, _ := framer.ToFrame(makeMsg(`{"a":3.0}`))
@@ -214,8 +214,8 @@ func TestFramer_NullForKnownField(t *testing.T) {
 func TestFramer_NullThenValue(t *testing.T) {
 	framer := NewFramer()
 
-	framer.ToFrame(makeMsg(`{"x":42.0}`))
-	framer.ToFrame(makeMsg(`{"x":null}`))
+	_, _ = framer.ToFrame(makeMsg(`{"x":42.0}`))
+	_, _ = framer.ToFrame(makeMsg(`{"x":null}`))
 
 	frame, err := framer.ToFrame(makeMsg(`{"x":7.5}`))
 	if err != nil {

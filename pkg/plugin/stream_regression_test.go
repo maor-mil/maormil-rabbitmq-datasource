@@ -32,7 +32,7 @@ type discardPackets struct{}
 func (discardPackets) Send(*backend.StreamPacket) error { return nil }
 
 // runStream runs RunStream with a timeout and converts a panic into an error.
-func runStream(ds *RabbitMQDatasource, timeout time.Duration) (err error, panicked bool, finished bool) {
+func runStream(ds *RabbitMQDatasource, timeout time.Duration) (panicked bool, finished bool, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	done := make(chan struct{})
@@ -48,16 +48,16 @@ func runStream(ds *RabbitMQDatasource, timeout time.Duration) (err error, panick
 	}()
 	select {
 	case <-done:
-		return err, panicked, true
+		return panicked, true, err
 	case <-time.After(timeout + time.Second):
-		return nil, false, false
+		return false, false, nil
 	}
 }
 
 func TestRunStreamReturnsAnErrorWhenTheConsumerCannotBeCreated(t *testing.T) {
 	client := &fakeClient{consumeErr: errors.New("Stream Does Not Exist")}
 
-	err, panicked, finished := runStream(NewRabbitMQDatasource(client), 2*time.Second)
+	panicked, finished, err := runStream(NewRabbitMQDatasource(client), 2*time.Second)
 
 	if panicked {
 		t.Fatalf("RunStream panicked instead of returning the consumer error: %v", err)
