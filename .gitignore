@@ -41,3 +41,5 @@ e2e-results/
 
 .vscode
 vendor
+# Personal Claude Code settings
+.claude/settings.local.json
