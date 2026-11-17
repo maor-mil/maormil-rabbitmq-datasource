@@ -13,13 +13,14 @@ prune: true
 
 datasources:
   - name: 'RabbitMQ'
+    uid: 'rabbitmq'
     type: 'maormil-rabbitmq-datasource'
     access: proxy
     isDefault: false
     version: 1
     editable: true
     jsonData:
-      host: localhost
+      host: rabbitmq
       amqpPort: 5672
       streamPort: 5552
       vHost: "/"

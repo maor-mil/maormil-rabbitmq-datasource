@@ -158,7 +158,7 @@ export const ConfigEditor = (props: Props) => {
   /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
-    <div className="gf-form-group">
+    <div>
       <FieldSet label="Connection">
         <InlineField label="Host" labelWidth={LABEL_WIDTH} tooltip="Hostname (or the IP) of the RabbitMQ server">
           <Input
