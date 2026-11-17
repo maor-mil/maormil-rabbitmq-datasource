@@ -81,6 +81,32 @@ export class RabbitMQManagement {
     expect([204, 404], `deleting queue "${name}" failed: ${await res.text()}`).toContain(res.status());
   }
 
+  /** Approximate number of messages stored in a queue/stream (0 when it does not exist). */
+  async messageCount(name: string, vhost = DEFAULT_VHOST): Promise<number> {
+    const res = await this.api.get(`/api/queues/${enc(vhost)}/${enc(name)}`);
+    return res.status() === 200 ? ((await res.json()).messages ?? 0) : 0;
+  }
+
+  /** Force-closes every client connection (AMQP and stream protocol), simulating a broker outage. Returns the count. */
+  async closeAllConnections(reason = 'e2e: simulated outage'): Promise<number> {
+    // The management API lists connections with its stats interval (~5s), so wait until they show up.
+    let connections: Array<{ name: string }> = [];
+    await expect
+      .poll(
+        async () => {
+          const list = await this.api.get('/api/connections');
+          connections = list.ok() ? await list.json() : [];
+          return connections.length;
+        },
+        { timeout: 20_000, message: 'no client connections listed by RabbitMQ' }
+      )
+      .toBeGreaterThan(0);
+    for (const { name } of connections) {
+      await this.api.delete(`/api/connections/${enc(name)}`, { headers: { 'X-Reason': reason } });
+    }
+    return connections.length;
+  }
+
   async exchangeExists(name: string, vhost = DEFAULT_VHOST): Promise<boolean> {
     const res = await this.api.get(`/api/exchanges/${enc(vhost)}/${enc(name)}`);
     return res.status() === 200;

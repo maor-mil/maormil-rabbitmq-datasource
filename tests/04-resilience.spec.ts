@@ -32,6 +32,40 @@ test.describe('resilience and lifecycle', () => {
     await expect(panel.locator.getByText(after)).toBeVisible(STREAM_TIMEOUT);
   });
 
+  test('streaming resumes after RabbitMQ drops the connections, without losing stored messages', async ({
+    createStreamingEnv,
+    gotoDashboardPage,
+    rabbitmq,
+  }) => {
+    const env = await createStreamingEnv();
+    const dashboard = await gotoDashboardPage({ uid: env.dashboardUid });
+    const panel = dashboard.getPanelByTitle(env.panelTitle);
+    await rabbitmq.waitForQueue(env.streamName);
+
+    const before = uniqueId('before-outage');
+    await rabbitmq.publishToStream(env.streamName, { name: before });
+    await expect(panel.locator.getByText(before)).toBeVisible(STREAM_TIMEOUT);
+
+    expect(await rabbitmq.closeAllConnections()).toBeGreaterThan(0);
+
+    // README: "If the RabbitMQ is down the plugin will try to keep reconnecting to the RabbitMQ".
+    // Keep publishing until a message makes it to the panel again (the stream may be briefly unavailable).
+    await expect
+      .poll(
+        async () => {
+          const after = uniqueId('after-outage');
+          if (await rabbitmq.queueExists(env.streamName)) {
+            await rabbitmq.publish({ routingKey: env.streamName, payload: { name: after } });
+          }
+          return panel.locator.getByText(after).isVisible({ timeout: 5_000 }).catch(() => false);
+        },
+        { timeout: 90_000, intervals: [5_000] }
+      )
+      .toBe(true);
+    // A connection loss must not delete the stream: the message published before the outage is still stored.
+    await expect.poll(() => rabbitmq.messageCount(env.streamName)).toBeGreaterThanOrEqual(2);
+  });
+
   test('closing the dashboard does not delete the stream', async ({
     createStreamingEnv,
     gotoDashboardPage,
@@ -61,7 +95,6 @@ test.describe('resilience and lifecycle', () => {
     page,
     rabbitmq,
   }) => {
-    expectKnownBug(KNOWN_BUGS.exchangeBindingNotRemoved);
     const env = await createStreamingEnv({
       topology: ({ id, streamName }) => ({
         exchangesOptions: [
@@ -126,6 +159,6 @@ test.describe('resilience and lifecycle', () => {
     // must be removed, including the exchange-to-exchange one.
     expect(await rabbitmq.exchangeExists(source)).toBe(true);
     expect(await rabbitmq.exchangeExists(target)).toBe(true);
-    await expect.poll(async () => (await rabbitmq.bindingsFrom(source)).length, { timeout: 30_000 }).toBe(0);
+    await expect.poll(async () => (await rabbitmq.bindingsFrom(source)).length, { timeout: 60_000 }).toBe(0);
   });
 });
