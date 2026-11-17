@@ -66,10 +66,7 @@ func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHan
 		stream.NewConsumerOptions().
 			SetConsumerName(streamOptions.getConsumerName()).
 			SetOffset(streamOptions.getOffsetSettings()).
-			SetCRCCheck(streamOptions.Crc).
-			SetAutoCommit(stream.NewAutoCommitStrategy().
-				SetCountBeforeStorage(50).
-				SetFlushInterval(5*time.Second)),
+			SetCRCCheck(streamOptions.Crc),
 	)
 	if err != nil {
 		return nil, failOnError(err, fmt.Sprintf("Failed to create the consumer: %s", streamOptions.ConsumerName))
