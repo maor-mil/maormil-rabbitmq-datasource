@@ -1,7 +1,7 @@
 import { RabbitMQDataSourceOptions, StreamOptions } from '../types';
 
 // Default values of the data source settings. They are documented in README.md and mirrored in
-// provisioning/datasources/datasources.yml — keep the three in sync.
+// pkg/rabbitmqclient/defaults.go and provisioning/datasources/datasources.yml — keep them in sync.
 
 export const DEFAULT_PASSWORD = 'guest';
 
@@ -45,12 +45,3 @@ export function withDefaults(jsonData: Partial<RabbitMQDataSourceOptions> | unde
   };
 }
 
-/** True when at least one setting is missing and would be filled by {@link withDefaults}. */
-export function hasMissingDefaults(jsonData: Partial<RabbitMQDataSourceOptions> | undefined): boolean {
-  const current: Partial<RabbitMQDataSourceOptions> = jsonData ?? {};
-  const missing = (keys: string[], obj: object) => keys.some((key) => (obj as Record<string, unknown>)[key] === undefined);
-  return (
-    missing(Object.keys(DEFAULT_OPTIONS), current) ||
-    missing(Object.keys(DEFAULT_STREAM_OPTIONS), current.streamOptions ?? {})
-  );
-}

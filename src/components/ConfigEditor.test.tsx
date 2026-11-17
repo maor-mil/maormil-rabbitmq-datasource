@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { DataSourceSettings } from '@grafana/data';
 
 import { ConfigEditor } from './ConfigEditor';
-import { DEFAULT_OPTIONS, DEFAULT_PASSWORD, hasMissingDefaults, withDefaults } from './defaults';
+import { DEFAULT_OPTIONS, withDefaults } from './defaults';
 import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData } from '../types';
 
 type Settings = DataSourceSettings<RabbitMQDataSourceOptions, RabbitMQSecureJsonData>;
@@ -20,29 +20,32 @@ const settings = (jsonData: Partial<RabbitMQDataSourceOptions>, secureJsonFields
     readOnly: false,
   }) as unknown as Settings;
 
+const textbox = (name: string) => screen.getByRole('textbox', { name });
+
 describe('ConfigEditor', () => {
-  it('persists every default and the default password in a single update for a new data source', () => {
+  it('shows the defaults for a new data source without writing on mount', () => {
     const onOptionsChange = jest.fn();
     render(<ConfigEditor options={settings({})} onOptionsChange={onOptionsChange} />);
 
-    expect(onOptionsChange).toHaveBeenCalledTimes(1);
-    const updated: Settings = onOptionsChange.mock.calls[0][0];
-    expect(updated.jsonData).toEqual(DEFAULT_OPTIONS);
-    expect(updated.secureJsonData?.password).toBe(DEFAULT_PASSWORD);
-  });
-
-  it('does not touch a fully configured data source on open', () => {
-    const onOptionsChange = jest.fn();
-    render(
-      <ConfigEditor
-        options={settings({ ...DEFAULT_OPTIONS, host: 'broker' }, { password: true })}
-        onOptionsChange={onOptionsChange}
-      />
-    );
+    expect(textbox('Host')).toHaveValue(DEFAULT_OPTIONS.host);
+    expect(textbox('AMQP Port')).toHaveValue(String(DEFAULT_OPTIONS.amqpPort));
+    expect(textbox('Stream Name')).toHaveValue(DEFAULT_OPTIONS.streamOptions.streamName);
+    // Grafana 13 drops updates made while the settings page initialises, so the editor must not rely on them.
     expect(onOptionsChange).not.toHaveBeenCalled();
   });
 
-  it('keeps all other settings when a single field changes', () => {
+  it('writes the complete settings (defaults included) on the first change of a new data source', () => {
+    const onOptionsChange = jest.fn();
+    render(<ConfigEditor options={settings({})} onOptionsChange={onOptionsChange} />);
+
+    fireEvent.change(textbox('Host'), { target: { value: 'broker' } });
+
+    expect(onOptionsChange).toHaveBeenCalledTimes(1);
+    const updated: Settings = onOptionsChange.mock.calls[0][0];
+    expect(updated.jsonData).toEqual({ ...DEFAULT_OPTIONS, host: 'broker' });
+  });
+
+  it('keeps all other settings when a nested stream setting changes', () => {
     const onOptionsChange = jest.fn();
     render(
       <ConfigEditor
@@ -51,7 +54,7 @@ describe('ConfigEditor', () => {
       />
     );
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Stream Name' }), { target: { value: 'my.stream' } });
+    fireEvent.change(textbox('Stream Name'), { target: { value: 'my.stream' } });
 
     const updated: Settings = onOptionsChange.mock.calls[0][0];
     expect(updated.jsonData).toEqual({
@@ -62,18 +65,18 @@ describe('ConfigEditor', () => {
   });
 });
 
-describe('defaults', () => {
+describe('withDefaults', () => {
   it('fills missing top-level and nested stream values without overriding existing ones', () => {
-    const filled = withDefaults({ host: 'broker', streamOptions: { streamName: 'custom' } as any });
+    const filled = withDefaults({ host: 'broker', streamOptions: { streamName: 'custom', maxAge: 0 } as any });
     expect(filled.host).toBe('broker');
     expect(filled.amqpPort).toBe(DEFAULT_OPTIONS.amqpPort);
     expect(filled.streamOptions.streamName).toBe('custom');
-    expect(filled.streamOptions.maxAge).toBe(DEFAULT_OPTIONS.streamOptions.maxAge);
+    expect(filled.streamOptions.maxAge).toBe(0);
+    expect(filled.streamOptions.maxLengthBytes).toBe(DEFAULT_OPTIONS.streamOptions.maxLengthBytes);
   });
 
-  it('detects missing values', () => {
-    expect(hasMissingDefaults({})).toBe(true);
-    expect(hasMissingDefaults({ ...DEFAULT_OPTIONS, streamOptions: { streamName: 'x' } as any })).toBe(true);
-    expect(hasMissingDefaults(DEFAULT_OPTIONS)).toBe(false);
+  it('returns the defaults for empty settings', () => {
+    expect(withDefaults({})).toEqual(DEFAULT_OPTIONS);
+    expect(withDefaults(undefined)).toEqual(DEFAULT_OPTIONS);
   });
 });

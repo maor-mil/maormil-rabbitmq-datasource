@@ -51,10 +51,6 @@ func NewRabbitMQStreamClient() *RabbitMQStreamClient {
 	return &RabbitMQStreamClient{}
 }
 
-func NewRabbitMQStreamOptions() *RabbitMQStreamOptions {
-	return &RabbitMQStreamOptions{}
-}
-
 func (client *RabbitMQStreamClient) SetRabbitMQOptions(rabbitmqStreamOptions *RabbitMQStreamOptions) *RabbitMQStreamClient {
 	client.RabbitMQOptions = rabbitmqStreamOptions
 	return client

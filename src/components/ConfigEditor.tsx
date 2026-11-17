@@ -1,4 +1,4 @@
-import React, { ChangeEvent, SetStateAction, useEffect } from 'react';
+import React, { ChangeEvent, SetStateAction } from 'react';
 
 import { FieldSet, InlineField, InlineSwitch, Input, SecretInput } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
@@ -7,7 +7,7 @@ import { RabbitMQDataSourceOptions, RabbitMQSecureJsonData, ExchangesOptions, Bi
 import { ExchangesComponent } from './ExchangesComponent';
 import { BindingsComponent } from './BindingsComponent';
 import { LABEL_WIDTH, INPUT_WIDTH, SWITCH_WIDTH } from './consts';
-import { DEFAULT_OPTIONS, DEFAULT_PASSWORD, DEFAULT_STREAM_OPTIONS, hasMissingDefaults, withDefaults } from './defaults';
+import { DEFAULT_OPTIONS, DEFAULT_PASSWORD, DEFAULT_STREAM_OPTIONS, withDefaults } from './defaults';
 
 interface Props extends DataSourcePluginOptionsEditorProps<RabbitMQDataSourceOptions, RabbitMQSecureJsonData> {}
 
@@ -15,7 +15,9 @@ export const ConfigEditor = (props: Props) => {
   const { onOptionsChange, options } = props;
   const { secureJsonData, secureJsonFields } = options;
 
-  // Always render (and write back) complete settings, even before the defaults are persisted.
+  // Always render (and write back) complete settings. Defaults are NOT persisted on mount: Grafana 13 discards
+  // onOptionsChange calls made while its settings page is still initialising. The backend applies the same
+  // defaults to any missing value (pkg/rabbitmqclient/defaults.go), including the default password.
   const jsonData = withDefaults(options.jsonData);
   const streamOptions = jsonData.streamOptions;
 
@@ -67,24 +69,6 @@ export const ConfigEditor = (props: Props) => {
       },
     });
   };
-
-  // Persist the defaults once when the editor opens. A brand-new data source (empty settings) also gets
-  // the default password, as documented in the README.
-  useEffect(() => {
-    const isNewDataSource = Object.keys(options.jsonData ?? {}).length === 0;
-    if (!isNewDataSource && !hasMissingDefaults(options.jsonData)) {
-      return;
-    }
-    onOptionsChange({
-      ...options,
-      jsonData: withDefaults(options.jsonData),
-      ...(isNewDataSource && {
-        secureJsonFields: { ...options.secureJsonFields, password: true },
-        secureJsonData: { ...options.secureJsonData, password: DEFAULT_PASSWORD },
-      }),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div>
