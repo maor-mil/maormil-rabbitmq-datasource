@@ -21,7 +21,7 @@ type BindingOptions struct {
 }
 
 func (bindingOptions *BindingOptions) CreateBinding(ch *amqp.Channel) error {
-	var err error = nil
+	var err error
 	receiverType := "Queue"
 	if bindingOptions.IsQueueBinding {
 		err = ch.QueueBind(
@@ -56,7 +56,7 @@ func (bindingOptions *BindingOptions) DisposeBinding(ch *amqp.Channel) error {
 	if !bindingOptions.ShouldDisposeBinding {
 		return nil
 	}
-	var err error = nil
+	var err error
 	receiverType := "Queue"
 	if bindingOptions.IsQueueBinding {
 		err = ch.QueueUnbind(
