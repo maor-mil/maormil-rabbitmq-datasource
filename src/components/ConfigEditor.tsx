@@ -136,13 +136,6 @@ export const ConfigEditor = (props: Props) => {
         </InlineField>
       </FieldSet>
       <FieldSet label="Stream Settings">
-        <InlineField label="Should Dispose Stream" labelWidth={LABEL_WIDTH} tooltip="Should delete this stream (in the RabbitMQ) when the RabbitMQ datasource is deleted">
-          <InlineSwitch
-            onChange={(event) => updateStreamOptions({ shouldDisposeStream: event.currentTarget.checked })}
-            value={streamOptions.shouldDisposeStream}
-            width={SWITCH_WIDTH}
-          />
-        </InlineField>
         <InlineField label="Stream Name" labelWidth={LABEL_WIDTH} tooltip="The stream name that will be created">
           <Input
             onChange={(event) =>

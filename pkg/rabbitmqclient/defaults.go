@@ -50,6 +50,5 @@ func NewStreamOptions() *StreamOptions {
 		MaxLengthBytes:      DefaultMaxLengthBytes,
 		MaxSegmentSizeBytes: DefaultMaxSegmentSizeBytes,
 		OffsetFromStart:     true,
-		ShouldDisposeStream: true,
 	}
 }

@@ -14,7 +14,7 @@ If you are not fimiliar with RabbitMQ Stream Plugin, here are some good resource
 ### Reqirements
 
 - RabbitMQ v3.12.10+ with `rabbitmq_stream` plugin enabled (should work on RabbitMQ v3.9+ but never was tested)
-- Grafana v9.4.3+
+- Grafana v13.2.0+
 
 > Note: This is a backend plugin, so the Grafana server should've access to the RabbitMQ broker.
 
@@ -59,7 +59,6 @@ RabbitMQ stream and the settings of its consumer.
 
 | Field                    | Type     | Is Required | Default Value       | Description                                               |
 |--------------------------|----------|-------------|---------------------|-----------------------------------------------------------|
-| `Should Dispose Stream`  | `bool`   | Yes         | `true`              | Should delete this stream (in the RabbitMQ) when the RabbitMQ datasource is deleted |
 | `Stream Name`            | `string` | Yes         | `"rabbitmq.stream"` | The stream name that will be created                      |
 | `Consumer Name`          | `string` | No          | `""`                | The consumer name that will be created                    |
 | `Offset from Start`      | `bool`   | Yes         | `true`              | Should the consumer consume messages from the start or the end of the stored messages in the stream |
@@ -71,7 +70,7 @@ RabbitMQ stream and the settings of its consumer.
 
 #### Exchanges
 Optional Section.
-Array section for multiple exchanges that should be created in the RabbitMQ (they will also be recreated in case of connection lost to the RabbitMQ / Stream deletion in the RabbitMQ).
+Array section for multiple exchanges that should be created in the RabbitMQ (they are declared again whenever the plugin reconnects, e.g. after a connection loss or a stream deletion in the RabbitMQ).
 If the exchange already exists in the RabbitMQ, the plugin will not recreate the exchange but if the same exchange name already exists in the RabbitMQ with different settings that you gave, you might encounter some problems creating the RabbitMQ Datasource connections.
 
 <img src="https://github.com/maor-mil/maormil-rabbitmq-datasource/blob/main/src/screenshots/new_rabbitmq_datasource/exchanges_section.png?raw=true"
@@ -79,8 +78,6 @@ If the exchange already exists in the RabbitMQ, the plugin will not recreate the
 
 | Field                     | Type     | Is Required | Default Value              | Description                                                          |
 |---------------------------|----------|-------------|----------------------------|----------------------------------------------------------------------|
-| `Should Dispose Exchange` | `bool`   | Yes         | `true`                     | Should delete this exchange when the RabbitMQ datasource is deleted  |
-| `Dispose if Unused`       | `bool`   | Yes         | `true`                     | Delete this exchange only if it doesn't have bindings (and if 'Should Dispose Exchange' is set ON) |
 | `Exchange Name`           | `string` | Yes         | `"rabbitmq.exchange"`          | The exchange name that should exist in the RabbitMQ                  |
 | `Exchange Type`           | `string` | Yes         | `"fanout"`                   | The exchange type                                                    |
 | `Is Durable`              | `bool`   | Yes         | `true`                     | Should the exchange be durable                                       |
@@ -100,7 +97,6 @@ There is a support of binding of exchange to queue (or a stream) type of binding
 
 | Field                    | Type     | Is Required | Default Value                                          | Description                                              |
 |--------------------------|----------|-------------|--------------------------------------------------------|----------------------------------------------------------|
-| `Should Dispose Binding` | `bool`   | Yes         | `true`                                                 | Should unbind when the RabbitMQ datasource is deleted    |
 | `Is Queue Binding`       | `bool`   | Yes         | `true`                                                 | Should binding be from Exchange to queue/stream (if disabled, the binding will be from exchange to exchange) |
 | `Sender Name`            | `string` | Yes         | `"rabbitmq.exchange"`                                      | The exchange to bind from                                |
 | `Routing Key`            | `string` | Yes         | `"/"`                                                  | The routing key to bind between the sender exchange and the receiver |
@@ -119,15 +115,17 @@ This plugin was planned and deisgned to work with the [Plotly by nline](https://
 Feel free to check this awesome plugin (and if you wish not to use plotly you can still use transformations together with this RabbitMQ plugin).
 
 ## Reconnecting to the RabbitMQ
-The plugin handle most chaos scenarios automatically:
-* If the stream is deleted in the RabbitMQ itself - the stream, its consumer, and the pre-configured exchanges and bindings will be recreated.
-* If the Grafana is down once it goes up again, the consumer will be recreated.
-* If the RabbitMQ is down the plugin will try to keep reconnecting to the RabbitMQ (it will only stop if the datasource is deleted by the user).
+The plugin handles most chaos scenarios automatically:
+* If the stream is deleted in the RabbitMQ itself - the stream and the pre-configured exchanges and bindings are declared again and streaming resumes (the messages that were stored in the deleted stream are gone).
+* If the connection to the RabbitMQ is lost (broker restart, network issue) - Grafana restarts the stream with an exponential backoff while a panel is open, and the plugin reconnects.
+* If the Grafana is down - the consumer is recreated once a panel is opened again.
 
-## Important Note about the Deletion of RabbitMQ Datasource
-The consumer of the stream is created once the user created a panel of the RabbitMQ datasource. 
-If the user decides to remove the RabbitMQ Datasource before the consumer was created, the stream, exchanges and bindings that were created from the RabbitMQ Datasource will still exists in the RabbitMQ even if you set them to be disposed. So if you wish for them to be deleted, you must do it manually.
-If the consumer was already created, the stream, exchanges and bindings will be disposed (deleted) based on the settings of the RabbitMQ datasource you had set.
+The consumer is created when a panel that uses the RabbitMQ datasource is opened, and closed (together with its connection) shortly after the last such panel is closed.
+
+## The plugin never deletes anything in the RabbitMQ
+The plugin declares the configured stream, exchanges and bindings (declaring is idempotent, so existing objects with the same settings are reused), but it never deletes them - not when a dashboard is closed, not when the datasource settings are saved, and not when the datasource is deleted (Grafana does not tell plugins about deletions).
+Delete objects you no longer need in the RabbitMQ itself (e.g. with the management UI or `rabbitmqctl`), and use `Max Age` / `Max Length Bytes` to bound how much the stream keeps.
+Versions before 2.0.0 had "Should Dispose ..." settings that deleted these objects - often unexpectedly, e.g. whenever the last panel was closed. They were removed; old values in saved datasources are ignored.
 
 ## Known limitations
 * This plugin does not support advanced TLS Configuration for RabbitMQ connections.

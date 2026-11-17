@@ -132,6 +132,34 @@ jobs:
           path: ${{ steps.metadata.outputs.plugin-id }}
           retention-days: 5
 
+  backend-integration:
+    name: Backend integration tests (RabbitMQ)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Start RabbitMQ
+        run: docker compose up -d --wait rabbitmq
+
+      - name: Run integration tests
+        run: go test -tags integration -count=1 ./pkg/...
+
+      - name: RabbitMQ logs
+        if: ${{ failure() }}
+        run: docker logs maormil-rabbitmq-datasource-rabbitmq
+
+      - name: Stop RabbitMQ
+        if: ${{ always() }}
+        run: docker compose down
+
   resolve-versions:
     name: Resolve e2e images
     runs-on: ubuntu-latest

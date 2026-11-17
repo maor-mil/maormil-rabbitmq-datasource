@@ -75,6 +75,17 @@ describe('withDefaults', () => {
     expect(filled.streamOptions.maxLengthBytes).toBe(DEFAULT_OPTIONS.streamOptions.maxLengthBytes);
   });
 
+  it('drops the dispose settings that older versions stored', () => {
+    const filled = withDefaults({
+      streamOptions: { streamName: 's', shouldDisposeStream: true } as any,
+      exchangesOptions: [{ name: 'e', shouldDisposeExchange: true, disposeIfUnused: true } as any],
+      bindingsOptions: [{ senderName: 'e', shouldDisposeBinding: true } as any],
+    });
+    expect(filled.streamOptions).not.toHaveProperty('shouldDisposeStream');
+    expect(filled.exchangesOptions[0]).toEqual({ name: 'e' });
+    expect(filled.bindingsOptions[0]).toEqual({ senderName: 'e' });
+  });
+
   it('returns the defaults for empty settings', () => {
     expect(withDefaults({})).toEqual(DEFAULT_OPTIONS);
     expect(withDefaults(undefined)).toEqual(DEFAULT_OPTIONS);

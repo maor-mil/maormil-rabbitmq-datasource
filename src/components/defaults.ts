@@ -6,7 +6,6 @@ import { RabbitMQDataSourceOptions, StreamOptions } from '../types';
 export const DEFAULT_PASSWORD = 'guest';
 
 export const DEFAULT_STREAM_OPTIONS: StreamOptions = {
-  shouldDisposeStream: true,
   streamName: 'rabbitmq.stream',
   consumerName: '',
   offsetFromStart: true,
@@ -33,15 +32,29 @@ export const DEFAULT_OPTIONS: RabbitMQDataSourceOptions = {
   noDelay: false,
 };
 
+/**
+ * Settings that older plugin versions stored but that no longer exist (the plugin stopped deleting
+ * RabbitMQ objects in 2.0). They are dropped from the settings the editor writes back.
+ */
+const REMOVED_STREAM_KEYS = ['shouldDisposeStream'];
+const REMOVED_EXCHANGE_KEYS = ['shouldDisposeExchange', 'disposeIfUnused'];
+const REMOVED_BINDING_KEYS = ['shouldDisposeBinding'];
+
+function without<T extends object>(value: T, keys: string[]): T {
+  const copy = { ...value } as Record<string, unknown>;
+  keys.forEach((key) => delete copy[key]);
+  return copy as T;
+}
+
 /** Returns the settings with every missing value (including nested stream options) filled with its default. */
 export function withDefaults(jsonData: Partial<RabbitMQDataSourceOptions> | undefined): RabbitMQDataSourceOptions {
   const current = jsonData ?? {};
   return {
     ...DEFAULT_OPTIONS,
     ...current,
-    streamOptions: { ...DEFAULT_STREAM_OPTIONS, ...current.streamOptions },
-    exchangesOptions: current.exchangesOptions ?? [],
-    bindingsOptions: current.bindingsOptions ?? [],
+    streamOptions: without({ ...DEFAULT_STREAM_OPTIONS, ...current.streamOptions }, REMOVED_STREAM_KEYS),
+    exchangesOptions: (current.exchangesOptions ?? []).map((e) => without(e, REMOVED_EXCHANGE_KEYS)),
+    bindingsOptions: (current.bindingsOptions ?? []).map((b) => without(b, REMOVED_BINDING_KEYS)),
   };
 }
 

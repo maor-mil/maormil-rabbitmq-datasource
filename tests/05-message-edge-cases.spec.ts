@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures';
-import { expectKnownBug, KNOWN_BUGS } from './known-bugs';
 import { uniqueId } from './helpers/grafana';
 
 const STREAM_TIMEOUT = { timeout: 30_000 };
@@ -14,7 +13,6 @@ test.describe('message edge cases', () => {
     gotoDashboardPage,
     rabbitmq,
   }) => {
-    expectKnownBug(KNOWN_BUGS.typeChangeDropsValues);
     const env = await createStreamingEnv();
     const dashboard = await gotoDashboardPage({ uid: env.dashboardUid });
     const panel = dashboard.getPanelByTitle(env.panelTitle);
@@ -32,7 +30,6 @@ test.describe('message edge cases', () => {
     gotoDashboardPage,
     rabbitmq,
   }) => {
-    expectKnownBug(KNOWN_BUGS.nullCrashesPlugin);
     const env = await createStreamingEnv();
     const dashboard = await gotoDashboardPage({ uid: env.dashboardUid });
     const panel = dashboard.getPanelByTitle(env.panelTitle);

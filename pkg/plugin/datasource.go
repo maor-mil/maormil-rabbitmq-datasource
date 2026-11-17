@@ -33,12 +33,13 @@ func NewRabbitMQInstance(ctx context.Context, s backend.DataSourceInstanceSettin
 
 	log.DefaultLogger.Debug("New RabbitMQ Instance Datasource settings were set!")
 
-	_, err = client.Connect()
-	if err != nil {
-		return nil, err
+	// Connect eagerly so the topology is declared as soon as the data source is used, but do not fail the
+	// instance: CheckHealth reports the connection error ("Save & test") and RunStream retries.
+	if _, err = client.Connect(); err != nil {
+		log.DefaultLogger.Warn("Could not connect to RabbitMQ yet", "RabbitMQ Stream", client.ToString(), "error", err)
+	} else {
+		log.DefaultLogger.Debug("Successfully connected to the RabbitMQ!")
 	}
-
-	log.DefaultLogger.Debug("Successfully connected to the RabbitMQ!")
 
 	return NewRabbitMQDatasource(client), nil
 }
@@ -53,12 +54,12 @@ func NewRabbitMQDatasource(client rabbitmqclient.Client) *RabbitMQDatasource {
 	}
 }
 
-// Dispose here tells plugin SDK that plugin wants to clean up resources
-// when a new instance created. As soon as datasource settings change detected
-// by SDK old datasource instance will be disposed and a new one will be created
-// using RabbitMQDatasource factory function.
+// Dispose is called by the SDK when the data source settings change (and the instance is replaced by a
+// new one) or the instance is evicted. It only closes the connections: the plugin never deletes streams,
+// exchanges or bindings in RabbitMQ, since Grafana does not tell plugins whether a data source was deleted
+// or merely saved.
 func (ds *RabbitMQDatasource) Dispose() {
-	ds.Client.Dispose()
+	ds.Client.Close()
 }
 
 func getDatasourceSettings(s backend.DataSourceInstanceSettings) (*rabbitmqclient.RabbitMQStreamClient, error) {

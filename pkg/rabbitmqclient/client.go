@@ -2,6 +2,7 @@ package rabbitmqclient
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
@@ -9,12 +10,18 @@ import (
 	stream "github.com/rabbitmq/rabbitmq-stream-go-client/pkg/stream"
 )
 
+// Client is the RabbitMQ connection of one data source instance.
+//
+// The plugin declares the configured topology (exchanges, the stream, bindings) but never deletes
+// anything in RabbitMQ: Close only releases the consumer and the connections.
 type Client interface {
 	IsConnected() bool
+	// Connect opens the stream connection and (re-)declares the configured topology. Declaring is
+	// idempotent, so calling Connect again recreates a stream that was deleted in RabbitMQ.
 	Connect() (Client, error)
-	Reconnect() Client
 	Consume(stream.MessagesHandler) (*stream.Consumer, error)
-	Dispose()
+	// Close closes the consumer and the connection. It never deletes streams, exchanges or bindings.
+	Close()
 	ToString() string
 }
 
@@ -26,7 +33,6 @@ type RabbitMQStreamOptions struct {
 	User                  string             `json:"username"`
 	Password              string             `json:"password"`
 	IsTLS                 bool               `json:"tlsConnection"`
-	TLSConfig             bool               `json:"TLSConfig"`
 	RequestedHeartbeat    time.Duration      `json:"requestedHeartbeat"`
 	RequestedMaxFrameSize int                `json:"requestedMaxFrameSize"`
 	WriteBuffer           int                `json:"writeBuffer"`
@@ -43,9 +49,11 @@ type RabbitMQStreamClient struct {
 	Stream          Stream
 	Exchanges       []Exchange
 	Bindings        []Binding
-}
 
-const timeToReconnect time.Duration = 2000 * time.Millisecond
+	// mu serialises Connect, Consume, Close and IsConnected, which are called concurrently by
+	// RunStream, CheckHealth and instance disposal.
+	mu sync.Mutex
+}
 
 func NewRabbitMQStreamClient() *RabbitMQStreamClient {
 	return &RabbitMQStreamClient{}
@@ -90,15 +98,17 @@ func (client *RabbitMQStreamClient) SetStream() *RabbitMQStreamClient {
 }
 
 func (client *RabbitMQStreamClient) SetExchanges() *RabbitMQStreamClient {
-	for exchangeIndex := 0; exchangeIndex < len(client.RabbitMQOptions.ExchangesOptions); exchangeIndex += 1 {
-		client.Exchanges = append(client.Exchanges, client.RabbitMQOptions.ExchangesOptions[exchangeIndex])
+	client.Exchanges = nil
+	for _, exchange := range client.RabbitMQOptions.ExchangesOptions {
+		client.Exchanges = append(client.Exchanges, exchange)
 	}
 	return client
 }
 
 func (client *RabbitMQStreamClient) SetBindings() *RabbitMQStreamClient {
-	for bindingIndex := 0; bindingIndex < len(client.RabbitMQOptions.BindingsOptions); bindingIndex += 1 {
-		client.Bindings = append(client.Bindings, client.RabbitMQOptions.BindingsOptions[bindingIndex])
+	client.Bindings = nil
+	for _, binding := range client.RabbitMQOptions.BindingsOptions {
+		client.Bindings = append(client.Bindings, binding)
 	}
 	return client
 }
@@ -108,17 +118,8 @@ func (client *RabbitMQStreamClient) CreateStream() (*RabbitMQStreamClient, error
 }
 
 func (client *RabbitMQStreamClient) CreateExchanges(ch *amqp.Channel) (*RabbitMQStreamClient, error) {
-	for exchangeIndex := 0; exchangeIndex < len(client.Exchanges); exchangeIndex += 1 {
-		if err := client.Exchanges[exchangeIndex].CreateExchange(ch); err != nil {
-			return client, err
-		}
-	}
-	return client, nil
-}
-
-func (client *RabbitMQStreamClient) DisposeExchanges(ch *amqp.Channel) (*RabbitMQStreamClient, error) {
-	for exchangeIndex := 0; exchangeIndex < len(client.Exchanges); exchangeIndex += 1 {
-		if err := client.Exchanges[exchangeIndex].DisposeExchange(ch); err != nil {
+	for _, exchange := range client.Exchanges {
+		if err := exchange.CreateExchange(ch); err != nil {
 			return client, err
 		}
 	}
@@ -126,17 +127,8 @@ func (client *RabbitMQStreamClient) DisposeExchanges(ch *amqp.Channel) (*RabbitM
 }
 
 func (client *RabbitMQStreamClient) CreateBindings(ch *amqp.Channel) (*RabbitMQStreamClient, error) {
-	for bindingIndex := 0; bindingIndex < len(client.Bindings); bindingIndex += 1 {
-		if err := client.Bindings[bindingIndex].CreateBinding(ch); err != nil {
-			return client, err
-		}
-	}
-	return client, nil
-}
-
-func (client *RabbitMQStreamClient) DisposeBindings(ch *amqp.Channel) (*RabbitMQStreamClient, error) {
-	for bindingIndex := 0; bindingIndex < len(client.Bindings); bindingIndex += 1 {
-		if err := client.Bindings[bindingIndex].DisposeBinding(ch); err != nil {
+	for _, binding := range client.Bindings {
+		if err := binding.CreateBinding(ch); err != nil {
 			return client, err
 		}
 	}
@@ -144,7 +136,13 @@ func (client *RabbitMQStreamClient) DisposeBindings(ch *amqp.Channel) (*RabbitMQ
 }
 
 func (client *RabbitMQStreamClient) IsConnected() bool {
-	return !client.Env.IsClosed()
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	return client.isConnected()
+}
+
+func (client *RabbitMQStreamClient) isConnected() bool {
+	return client.Env != nil && !client.Env.IsClosed()
 }
 
 // closeAndLog closes c and logs the error instead of silently discarding it.
@@ -162,62 +160,40 @@ func (client *RabbitMQStreamClient) createAmqpConnection() (*amqp.Connection, er
 }
 
 func (client *RabbitMQStreamClient) Connect() (Client, error) {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+
+	// Never leak a previous connection.
+	client.close()
+
 	log.DefaultLogger.Debug("Trying to set the RabbitMQ environment...")
-	_, err := client.SetEnv()
-	if err != nil {
+	if _, err := client.SetEnv(); err != nil {
 		log.DefaultLogger.Error("Couldn't set the RabbitMQ environment", "error", err)
+		client.Env = nil
 		return client, err
 	}
 	log.DefaultLogger.Debug("Successfully set the RabbitMQ environment!")
 
-	log.DefaultLogger.Debug("Trying to set the RabbitMQ objects...")
 	client.SetStream()
 	client.SetExchanges()
 	client.SetBindings()
-	log.DefaultLogger.Debug("Successfully set the RabbitMQ objects!")
 
-	log.DefaultLogger.Debug("Create new channel to the RabbitMQ...")
-	conn, err := client.createAmqpConnection()
-	if err != nil {
-		log.DefaultLogger.Error("Couldn't connect to the RabbitMQ with AMQP connection", "error", err)
+	// Only report "connected" once the topology is in place.
+	if err := client.declareTopology(); err != nil {
+		client.close()
 		return client, err
 	}
-	defer closeAndLog("AMQP connection", conn)
-	ch, err := conn.Channel()
-	if err != nil {
-		return client, err
-	}
-	defer closeAndLog("AMQP channel", ch)
-	log.DefaultLogger.Debug("Successfully created new channel to the RabbitMQ...")
-
-	log.DefaultLogger.Debug("Trying to create the RabbitMQ objects...")
-	_, err = client.CreateExchanges(ch)
-	if err != nil {
-		return client, err
-	}
-	_, err = client.CreateStream()
-	if err != nil {
-		return client, err
-	}
-	_, err = client.CreateBindings(ch)
-	if err != nil {
-		return client, err
-	}
-	log.DefaultLogger.Debug("Successfully created the RabbitMQ objects!")
+	log.DefaultLogger.Debug("Successfully declared the RabbitMQ objects!")
 
 	return client, nil
 }
 
-func (client *RabbitMQStreamClient) CloseConnection() error {
-	if err := client.Stream.DisposeStream(client.Env); err != nil {
-		return err
-	} else {
-		log.DefaultLogger.Debug("Disposed Stream", "RabbitMQ Stream", client.ToString())
-	}
-
-	log.DefaultLogger.Debug("Create new channel to the RabbitMQ...")
+// declareTopology declares the exchanges, the stream and the bindings (in that order, so bindings can
+// reference both). Every declaration is idempotent.
+func (client *RabbitMQStreamClient) declareTopology() error {
 	conn, err := client.createAmqpConnection()
 	if err != nil {
+		log.DefaultLogger.Error("Couldn't connect to the RabbitMQ with AMQP connection", "error", err)
 		return err
 	}
 	defer closeAndLog("AMQP connection", conn)
@@ -226,59 +202,50 @@ func (client *RabbitMQStreamClient) CloseConnection() error {
 		return err
 	}
 	defer closeAndLog("AMQP channel", ch)
-	log.DefaultLogger.Debug("Successfully created new channel to the RabbitMQ...")
 
-	if _, err := client.DisposeBindings(ch); err != nil {
+	if _, err := client.CreateExchanges(ch); err != nil {
 		return err
-	} else {
-		log.DefaultLogger.Debug("Disposed bindings", "RabbitMQ Stream", client.ToString())
 	}
-
-	if _, err := client.DisposeExchanges(ch); err != nil {
+	if _, err := client.CreateStream(); err != nil {
 		return err
-	} else {
-		log.DefaultLogger.Debug("Disposed exchanges", "RabbitMQ Stream", client.ToString())
 	}
-
-	if err := client.Env.Close(); err != nil {
+	if _, err := client.CreateBindings(ch); err != nil {
 		return err
-	} else {
-		log.DefaultLogger.Debug("Closed RabbitMQ environment", "RabbitMQ Stream", client.ToString())
 	}
-
 	return nil
 }
 
-func (client *RabbitMQStreamClient) Reconnect() Client {
-	for {
-		time.Sleep(timeToReconnect)
-		log.DefaultLogger.Debug("Trying to reconnect to RabbitMQ", "RabbitMQ Stream", client.ToString())
-
-		err := client.CloseConnection()
-		if err != nil {
-			continue
-		}
-		_, err = client.Connect()
-		if err != nil {
-			continue
-		}
-		break
-	}
-	return client
-}
-
 func (client *RabbitMQStreamClient) Consume(messageHandler stream.MessagesHandler) (*stream.Consumer, error) {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	if !client.isConnected() {
+		return nil, fmt.Errorf("not connected to RabbitMQ")
+	}
 	return client.Stream.Consume(client.Env, messageHandler)
 }
 
-func (client *RabbitMQStreamClient) Dispose() {
-	if client.IsConnected() {
-		log.DefaultLogger.Debug("Disposing RabbitMQ Stream", "RabbitMQ Stream", client.ToString())
-		err := client.CloseConnection()
-		if err != nil {
-			log.DefaultLogger.Error("Error disposing RabbitMQ Stream", "error", err)
+func (client *RabbitMQStreamClient) Close() {
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	client.close()
+}
+
+// close releases the consumer and the stream environment. Errors are logged, not returned: closing is
+// best-effort, so a broken connection never prevents the next Connect.
+func (client *RabbitMQStreamClient) close() {
+	if client.Stream != nil {
+		if err := client.Stream.CloseConsumer(); err != nil {
+			log.DefaultLogger.Debug("Closing the consumer failed", "RabbitMQ Stream", client.ToString(), "error", err)
 		}
 	}
+	if client.isConnected() {
+		if err := client.Env.Close(); err != nil {
+			log.DefaultLogger.Debug("Closing the RabbitMQ environment failed", "RabbitMQ Stream", client.ToString(), "error", err)
+		} else {
+			log.DefaultLogger.Debug("Closed RabbitMQ environment", "RabbitMQ Stream", client.ToString())
+		}
+	}
+	client.Env = nil
 }
 
 func (client *RabbitMQStreamClient) ToString() string {

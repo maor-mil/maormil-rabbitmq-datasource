@@ -27,7 +27,6 @@ datasources:
       tlsConnection: false
       username: guest
       streamOptions:
-        shouldDisposeStream: true
         streamName: rabbitmq.stream
         consumerName: ''
         maxAge: 3600000000000
@@ -42,15 +41,12 @@ datasources:
           autoDeleted: false
           internal: false
           noWait: false
-          shouldDisposeExchange: true
-          disposeIfUnused: true
       bindingsOptions:
         - senderName: rabbitmq.exchange
           routingKey: /
           receiverName: rabbitmq.stream
           isQueueBinding: true
           noWait: false
-          shouldDisposeBinding: true
       requestedHeartbeat: 60
       requestedMaxFrameSize: 1048576
       writeBuffer: 8192
