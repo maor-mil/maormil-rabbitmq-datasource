@@ -80,7 +80,7 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 		select {
 		case <-ctx.Done():
 			log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
-			ds.Client.Dispose()
+			ds.Client.Close()
 			return nil
 		default:
 		}
@@ -98,21 +98,21 @@ func (ds *RabbitMQDatasource) RunStream(ctx context.Context, req *backend.RunStr
 		}
 		if err != nil {
 			log.DefaultLogger.Error("Failed to create consumer, stream will be re-established by Grafana", "RabbitMQ Stream", ds.Client.ToString(), "error", err)
-			ds.Client.Dispose()
+			ds.Client.Close()
 			return err
 		}
 
 		select {
 		case <-ctx.Done():
 			log.DefaultLogger.Debug("Stopped streaming - Context Canceled", "RabbitMQ Stream", ds.Client.ToString())
-			ds.Client.Dispose()
+			ds.Client.Close()
 			return nil
 		case <-consumer.NotifyClose():
 			log.DefaultLogger.Info(
 				"RabbitMQ consumer closed, stream will be re-established by Grafana",
 				"RabbitMQ Stream", ds.Client.ToString(),
 			)
-			ds.Client.Dispose()
+			ds.Client.Close()
 			return fmt.Errorf("RabbitMQ consumer closed unexpectedly")
 		}
 	}

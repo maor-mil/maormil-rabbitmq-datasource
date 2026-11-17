@@ -44,8 +44,8 @@ func testOptions(t *testing.T) (*RabbitMQStreamOptions, string, string) {
 		{Name: target, Type: "fanout", Durable: true},
 	}
 	opts.BindingsOptions = []*BindingOptions{
-		{SenderName: target, ReceiverName: opts.StreamOptions.StreamName, RoutingKey: "/", IsQueueBinding: true, ShouldDisposeBinding: true},
-		{SenderName: source, ReceiverName: target, RoutingKey: "/", IsQueueBinding: false, ShouldDisposeBinding: true},
+		{SenderName: target, ReceiverName: opts.StreamOptions.StreamName, RoutingKey: "/", IsQueueBinding: true},
+		{SenderName: source, ReceiverName: target, RoutingKey: "/", IsQueueBinding: false},
 	}
 	t.Cleanup(func() { cleanupTopology(t, opts, source, target) })
 	return opts, source, target
@@ -96,12 +96,11 @@ func bindingsFrom(t *testing.T, exchange string) []map[string]any {
 	return bindings
 }
 
-// Connect() runs again on every reconnect. It must not accumulate duplicate exchanges/bindings, otherwise
-// disposal deletes the same object twice and aborts on the second (404) delete.
+// Connect() runs again on every reconnect. It must not accumulate duplicate exchanges/bindings.
 func TestConnectTwiceDoesNotDuplicateTopology(t *testing.T) {
 	opts, _, _ := testOptions(t)
 	client := connect(t, opts)
-	defer func() { _ = client.Env.Close() }()
+	defer client.Close()
 
 	if _, err := client.Connect(); err != nil {
 		t.Fatalf("second Connect: %v", err)
@@ -112,12 +111,49 @@ func TestConnectTwiceDoesNotDuplicateTopology(t *testing.T) {
 	}
 }
 
-// When the stream is deleted in RabbitMQ the consumer is closed by the broker. Disposing must then clear the
-// consumer so that Reconnect() can create a new one instead of failing (and retrying) forever.
-func TestDisposeStreamClearsConsumerAfterTheStreamWasDeleted(t *testing.T) {
+func queueExists(t *testing.T, name string) bool {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet,
+		fmt.Sprintf("http://%s:15672/api/queues/%%2F/%s", brokerHost(), url.PathEscape(name)), nil)
+	req.SetBasicAuth("guest", "guest")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("management API: %v", err)
+	}
+	defer closeAndLog("response body", res.Body)
+	return res.StatusCode == http.StatusOK
+}
+
+// The plugin never deletes broker objects: Close only releases the consumer and the connection.
+func TestCloseKeepsTheTopologyAndClearsTheConsumer(t *testing.T) {
+	opts, source, target := testOptions(t)
+	client := connect(t, opts)
+	if _, err := client.Consume(func(stream.ConsumerContext, *streamamqp.Message) {}); err != nil {
+		t.Fatalf("Consume: %v", err)
+	}
+
+	client.Close()
+
+	if client.IsConnected() {
+		t.Fatal("still connected after Close")
+	}
+	if opts.StreamOptions.Consumer != nil {
+		t.Fatal("Close left the consumer in place; the next Consume() would refuse to create one")
+	}
+	if !queueExists(t, opts.StreamOptions.StreamName) {
+		t.Fatal("Close deleted the stream")
+	}
+	if len(bindingsFrom(t, source)) != 1 || len(bindingsFrom(t, target)) != 1 {
+		t.Fatal("Close removed bindings")
+	}
+}
+
+// When the stream is deleted in RabbitMQ the broker closes the consumer. Closing and connecting again
+// (what RunStream does before Grafana retries it) must recreate the stream and allow a new consumer.
+func TestConnectRecreatesAStreamThatWasDeletedInRabbitMQ(t *testing.T) {
 	opts, _, _ := testOptions(t)
 	client := connect(t, opts)
-	defer func() { _ = client.Env.Close() }()
+	defer client.Close()
 
 	consumer, err := client.Consume(func(stream.ConsumerContext, *streamamqp.Message) {})
 	if err != nil {
@@ -132,37 +168,14 @@ func TestDisposeStreamClearsConsumerAfterTheStreamWasDeleted(t *testing.T) {
 		t.Fatal("the consumer was not closed after its stream was deleted")
 	}
 
-	_ = opts.StreamOptions.DisposeStream(client.Env) // may report that the consumer was already closed
-
-	if opts.StreamOptions.Consumer != nil {
-		t.Fatal("DisposeStream left the closed consumer in place; Consume() would refuse to create a new one")
+	client.Close()
+	if _, err := client.Connect(); err != nil {
+		t.Fatalf("reconnect: %v", err)
 	}
-}
-
-// DisposeBindings must remove exchange-to-exchange bindings, not re-declare them.
-func TestDisposeBindingsRemovesExchangeToExchangeBindings(t *testing.T) {
-	opts, source, _ := testOptions(t)
-	client := connect(t, opts)
-	defer func() { _ = client.Env.Close() }()
-	if len(bindingsFrom(t, source)) != 1 {
-		t.Fatalf("expected the exchange-to-exchange binding from %s to exist after Connect", source)
+	if !queueExists(t, opts.StreamOptions.StreamName) {
+		t.Fatal("the stream was not recreated by Connect")
 	}
-
-	conn, err := client.createAmqpConnection()
-	if err != nil {
-		t.Fatalf("AMQP connection: %v", err)
-	}
-	defer closeAndLog("AMQP connection", conn)
-	ch, err := conn.Channel()
-	if err != nil {
-		t.Fatalf("channel: %v", err)
-	}
-	defer closeAndLog("AMQP channel", ch)
-	if _, err := client.DisposeBindings(ch); err != nil {
-		t.Fatalf("DisposeBindings: %v", err)
-	}
-
-	if remaining := bindingsFrom(t, source); len(remaining) != 0 {
-		t.Fatalf("exchange-to-exchange binding still exists after DisposeBindings: %v", remaining)
+	if _, err := client.Consume(func(stream.ConsumerContext, *streamamqp.Message) {}); err != nil {
+		t.Fatalf("Consume after recreating the stream: %v", err)
 	}
 }

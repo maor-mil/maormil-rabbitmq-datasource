@@ -30,7 +30,7 @@ func (m *mockClient) Reconnect() rabbitmqclient.Client {
 func (m *mockClient) Consume(handler stream.MessagesHandler) (*stream.Consumer, error) {
 	return m.consumeFn(handler)
 }
-func (m *mockClient) Dispose() {
+func (m *mockClient) Close() {
 	m.connected = false
 	m.disposed = true
 }
@@ -38,7 +38,7 @@ func (m *mockClient) ToString() string { return "mock" }
 
 // TestRunStream_ConsumeErrorReturnsErrorAndDisposesClient verifies that when
 // Consume() returns an error (other than ErrConsumerWasAlreadyCreated),
-// RunStream returns that error and calls Dispose() so Grafana can manage the
+// RunStream returns that error and calls Close() so Grafana can manage the
 // reconnection with its own exponential-backoff retry.
 func TestRunStream_ConsumeErrorReturnsErrorAndDisposesClient(t *testing.T) {
 	consumeErr := errors.New("stream does not exist")
@@ -58,7 +58,7 @@ func TestRunStream_ConsumeErrorReturnsErrorAndDisposesClient(t *testing.T) {
 		t.Errorf("unexpected error: want %v, got %v", consumeErr, err)
 	}
 	if !mock.disposed {
-		t.Error("Dispose() was not called after consume error")
+		t.Error("Close() was not called after consume error")
 	}
 }
 

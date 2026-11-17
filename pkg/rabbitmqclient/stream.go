@@ -12,8 +12,8 @@ var ErrConsumerWasAlreadyCreated = errors.New("consumer was already created")
 
 type Stream interface {
 	CreateStream(*stream.Environment) error
-	DisposeStream(*stream.Environment) error
 	Consume(*stream.Environment, stream.MessagesHandler) (*stream.Consumer, error)
+	CloseConsumer() error
 }
 
 type StreamOptions struct {
@@ -24,7 +24,6 @@ type StreamOptions struct {
 	ConsumerName        string        `json:"consumerName"`
 	OffsetFromStart     bool          `json:"offsetFromStart"`
 	Crc                 bool          `json:"crc"`
-	ShouldDisposeStream bool          `json:"ShouldDisposeStream"`
 	Consumer            *stream.Consumer
 }
 
@@ -36,19 +35,6 @@ func (streamOptions *StreamOptions) CreateStream(env *stream.Environment) error 
 			SetMaxSegmentSizeBytes(stream.ByteCapacity{}.B(streamOptions.MaxSegmentSizeBytes)))
 
 	return err
-}
-
-func (streamOptions *StreamOptions) DisposeStream(env *stream.Environment) error {
-	err := streamOptions.closeConsumer()
-	if err != nil {
-		return err
-	}
-
-	if streamOptions.ShouldDisposeStream {
-		return env.DeleteStream(streamOptions.StreamName)
-	}
-
-	return nil
 }
 
 func (streamOptions *StreamOptions) Consume(env *stream.Environment, messagesHandler stream.MessagesHandler) (*stream.Consumer, error) {
@@ -92,14 +78,14 @@ func (streamOptions *StreamOptions) getConsumerName() string {
 	return streamOptions.ConsumerName
 }
 
-func (streamOptions *StreamOptions) closeConsumer() error {
+// CloseConsumer closes the consumer (if any). The stream itself is never deleted.
+func (streamOptions *StreamOptions) CloseConsumer() error {
 	if streamOptions.Consumer == nil {
 		return nil
 	}
 	err := streamOptions.Consumer.Close()
-	// Always clear the pointer so Reconnect() can make progress even if Close()
-	// returns AlreadyClosed or another error.  Leaving it non-nil causes
-	// DisposeStream → closeConsumer to loop infinitely inside Reconnect().
+	// Always clear the pointer, also when Close() fails (e.g. the broker already closed the consumer
+	// because its stream was deleted), so that the next Consume() can create a new consumer.
 	streamOptions.Consumer = nil
 	if err != nil {
 		return failOnError(err, fmt.Sprintf("Failed to close the consumer: %s", streamOptions.ConsumerName))

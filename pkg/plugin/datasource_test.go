@@ -39,7 +39,7 @@ func TestGetDatasourceSettingsAppliesDefaultsToEmptySettings(t *testing.T) {
 
 func TestGetDatasourceSettingsKeepsConfiguredValues(t *testing.T) {
 	client, err := getDatasourceSettings(settingsFrom(
-		`{"host":"broker","streamPort":5551,"username":"svc","streamOptions":{"streamName":"orders","maxAge":0,"shouldDisposeStream":false}}`,
+		`{"host":"broker","streamPort":5551,"username":"svc","streamOptions":{"streamName":"orders","maxAge":0,"offsetFromStart":false}}`,
 		map[string]string{"password": "s3cr@t:/#?"},
 	))
 	if err != nil {
@@ -54,10 +54,10 @@ func TestGetDatasourceSettingsKeepsConfiguredValues(t *testing.T) {
 		t.Errorf("missing amqpPort should default to %d, got %d", rabbitmqclient.DefaultAmqpPort, got.AmqpPort)
 	}
 	so := got.StreamOptions
-	if so.StreamName != "orders" || so.MaxAge != 0 || so.ShouldDisposeStream {
+	if so.StreamName != "orders" || so.MaxAge != 0 || so.OffsetFromStart {
 		t.Errorf("configured stream values not kept (an explicit 0/false must not be replaced by a default): %+v", *so)
 	}
-	if so.MaxLengthBytes != rabbitmqclient.DefaultMaxLengthBytes || !so.OffsetFromStart {
+	if so.MaxLengthBytes != rabbitmqclient.DefaultMaxLengthBytes || so.MaxSegmentSizeBytes != rabbitmqclient.DefaultMaxSegmentSizeBytes {
 		t.Errorf("missing stream values should default: %+v", *so)
 	}
 }

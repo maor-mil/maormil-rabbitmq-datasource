@@ -15,13 +15,12 @@ import (
 // fakeClient is a rabbitmqclient.Client whose consumer can never be created.
 type fakeClient struct {
 	consumeErr error
-	disposed   int
+	closed     int
 }
 
 func (c *fakeClient) IsConnected() bool                       { return true }
 func (c *fakeClient) Connect() (rabbitmqclient.Client, error) { return c, nil }
-func (c *fakeClient) Reconnect() rabbitmqclient.Client        { return c }
-func (c *fakeClient) Dispose()                                { c.disposed++ }
+func (c *fakeClient) Close()                                  { c.closed++ }
 func (c *fakeClient) ToString() string                        { return "fake" }
 func (c *fakeClient) Consume(stream.MessagesHandler) (*stream.Consumer, error) {
 	return nil, c.consumeErr
